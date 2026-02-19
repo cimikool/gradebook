@@ -1047,8 +1047,31 @@ td.name-cell { min-width: 190px; max-width: 230px; }
     </div>
   </div>
 
-  <!-- CLASS PAGES (generated dynamically) -->
-  <div id="classPages"></div>
+  <!-- CLASS PAGE (single reusable container) -->
+  <div class="page" id="page-class">
+    <div class="class-toolbar">
+      <input class="search-box" type="search" placeholder="ابحث عن طالب…" id="classSearchBox" oninput="filterTableLive(this.value)" style="direction:rtl"/>
+      <button class="tool-btn primary" onclick="openPrintAllReport(currentClass)">🖨️ تقرير</button>
+      <button class="tool-btn" onclick="exportCSV(currentClass)">📊 CSV</button>
+    </div>
+    <div class="stats-row" id="classStatsRow"></div>
+    <div class="tablewrap" id="classTableWrap">
+      <table id="classTable">
+        <thead><tr>
+          <th>#</th>
+          <th style="min-width:190px;direction:rtl">الاسم الكامل</th>
+          <th>الغياب</th>
+          <th>المشاركة</th>
+          <th>الانضباط</th>
+          <th>الواجب</th>
+          <th>الدفتر</th>
+          <th>فرض 1</th><th>فرض 2</th><th>الإجمالي</th>
+          <th>النتيجة</th><th></th>
+        </tr></thead>
+        <tbody id="classTableBody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -1276,14 +1299,13 @@ function showPage(pageId, cls){
 
   if(cls){
     currentClass = cls;
-    const safeId = 'page-cls-'+cls.replace(/[^a-zA-Z0-9]/g,'_');
-    const pg = document.getElementById(safeId);
-    if(pg){ pg.classList.add('active'); renderClassPage(cls); }
+    document.getElementById('page-class').classList.add('active');
     document.getElementById('nav-cls-'+cls.replace(/[^a-zA-Z0-9]/g,'_'))?.classList.add('active');
     document.getElementById('topbarTitle').textContent = cls;
     document.getElementById('topbarMeta').textContent = DATA[cls].length + ' طالباً';
     if(backBtn) backBtn.style.display = 'flex';
     if(hamBtn)  hamBtn.style.display  = 'none';
+    renderClassPage(cls);
   } else {
     currentClass = null;
     currentPage = pageId;
@@ -1291,7 +1313,7 @@ function showPage(pageId, cls){
     if(pg) pg.classList.add('active');
     document.getElementById('nav-'+pageId)?.classList.add('active');
     if(pageId==='overview'){ document.getElementById('topbarTitle').textContent='Overview'; document.getElementById('topbarMeta').textContent=''; renderOverview(); }
-    if(pageId==='atrisk'){ document.getElementById('topbarTitle').textContent='At-Risk'; document.getElementById('topbarMeta').textContent=''; renderAtRisk(); }
+    if(pageId==='atrisk')  { document.getElementById('topbarTitle').textContent='At-Risk';  document.getElementById('topbarMeta').textContent=''; renderAtRisk(); }
     if(pageId==='settings'){ document.getElementById('topbarTitle').textContent='Settings'; document.getElementById('topbarMeta').textContent=''; loadGsUrlUI(); }
     if(backBtn) backBtn.style.display = 'none';
     if(hamBtn)  hamBtn.style.display  = '';
@@ -1320,54 +1342,28 @@ function buildSidebarNav(){
 }
 
 // ════════════════════════════════════
-// BUILD CLASS PAGES (containers)
+// BUILD CLASS PAGES (no-op — using single shared page now)
 // ════════════════════════════════════
-function buildClassPageContainers(){
-  const container = document.getElementById('classPages');
-  classNames.forEach(cls=>{
-    const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
-    const div = document.createElement('div');
-    div.className = 'page';
-    div.id = 'page-cls-'+safe;
-    div.innerHTML = `
-      <div class="class-toolbar">
-        <input class="search-box" type="search" placeholder="ابحث عن طالب…" id="srch-${safe}" oninput="filterTable('${cls}',this.value)" style="direction:rtl"/>
-        <button class="tool-btn primary" onclick="openPrintAllReport('${cls}')">🖨️ تقرير الفصل</button>
-        <button class="tool-btn" onclick="exportCSV('${cls}')">📊 CSV</button>
-        <button class="tool-btn danger" onclick="clearClass('${cls}')">🗑️ مسح</button>
-      </div>
-      <div class="stats-row" id="stats-${safe}"></div>
-      <div class="tablewrap" id="wrap-${safe}">
-        <table id="tbl-${safe}">
-          <thead><tr>
-            <th>#</th>
-            <th style="min-width:200px;direction:rtl">الاسم الكامل</th>
-            <th>الغياب</th>
-            <th>المشاركة</th>
-            <th>الانضباط</th>
-            <th>الواجب</th>
-            <th>الدفتر</th>
-            <th>فرض 1</th><th>فرض 2</th><th>الإجمالي</th>
-            <th>النتيجة</th><th></th>
-          </tr></thead>
-          <tbody id="tbody-${safe}"></tbody>
-        </table>
-      </div>`;
-    container.appendChild(div);
-  });
-}
+function buildClassPageContainers(){ /* single shared #page-class used instead */ }
 
 // ════════════════════════════════════
 // RENDER CLASS TABLE
 // ════════════════════════════════════
 function renderClassPage(cls){
-  const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
   const names = DATA[cls]||[];
   const st = loadCls(cls);
-  const tbody = document.getElementById('tbody-'+safe);
+  const tbody = document.getElementById('classTableBody');
   if(!tbody) return;
   tbody.innerHTML = '';
   if(!_rows[cls]) _rows[cls] = [];
+  _rows[cls] = [];
+
+  // Reset search
+  const srch = document.getElementById('classSearchBox');
+  if(srch) srch.value = '';
+
+  // Update stats
+  updateStats(cls);
   _rows[cls] = [];
 
   names.forEach((defaultName, idx)=>{
@@ -1506,8 +1502,7 @@ function renderClassPage(cls){
 // STATS BAR
 // ════════════════════════════════════
 function updateStats(cls){
-  const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
-  const el = document.getElementById('stats-'+safe);
+  const el = document.getElementById('classStatsRow');
   if(!el || !_rows[cls]) return;
   const rows = _rows[cls];
   const vals = rows.map(r=>parseFloat(r.rowObj.final.textContent)||0);
@@ -1542,7 +1537,10 @@ function filterTable(cls, term){
     const name = r.rowObj.nameInp.value.toLowerCase();
     r.tr.style.display = (!term||name.includes(term)) ? '' : 'none';
   });
-  updateStats(cls);
+}
+
+function filterTableLive(term){
+  if(currentClass) filterTable(currentClass, term);
 }
 
 // ════════════════════════════════════
