@@ -2257,10 +2257,11 @@ async function gsRequest(params){
   const url = getGsUrl();
   if(!url) return null;
   try{
+    // NOTE: No Content-Type header — avoids CORS preflight which Google Apps Script doesn't support.
+    // Sending as text/plain (default) bypasses preflight and works from any origin.
     const res = await fetch(url, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ key: SECRET, ...params })
+      method: 'POST',
+      body:   JSON.stringify({ key: SECRET, ...params })
     });
     return await res.json();
   }catch(e){ return null; }
