@@ -1,0 +1,2530 @@
+<!doctype html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>دفتر الأستاذ — Gradebook Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── iOS GLOBAL INPUT FIXES ── */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+/* iOS: remove default button styling */
+button { -webkit-appearance: none; appearance: none; font-family: var(--font-ar); }
+/* iOS: prevent callout on long press */
+img, button, a { -webkit-touch-callout: none; }
+/* iOS: smooth momentum on all scrollable areas */
+* { -webkit-overflow-scrolling: touch; }
+/* iOS: fix select highlight */
+select { -webkit-appearance: none; appearance: none; }
+
+:root {
+  --bg: #080e1e;
+  --bg2: #0c1428;
+  --panel: #101e36;
+  --card: #122040;
+  --border: rgba(255,255,255,.08);
+  --border2: rgba(255,255,255,.14);
+  --text: #e4ecff;
+  --muted: #5e7aa8;
+  --muted2: #8aa0c4;
+  --gold: #c9a84c;
+  --gold2: #e8c870;
+  --accent: #3d7fff;
+  --green: #22c55e;
+  --red: #f43f5e;
+  --amber: #f59e0b;
+  --cyan: #06b6d4;
+  --radius: 16px;
+  --font-ar: 'IBM Plex Sans Arabic', sans-serif;
+  --font-display: 'Playfair Display', serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --sidebar-w: 220px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height: -webkit-fill-available;}
+body{
+  font-family:var(--font-ar);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  min-height: -webkit-fill-available;
+  background-image: radial-gradient(ellipse at 20% 0%, rgba(61,127,255,.07) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 100%, rgba(201,168,76,.05) 0%, transparent 60%);
+  /* Prevent text size adjustment on iPhone rotation */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ── LAYOUT ── */
+.app {
+  display:flex;
+  height: 100vh;
+  height: -webkit-fill-available;
+  height: 100dvh;
+  overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform .3s ease;
+  z-index: 50;
+  /* iPhone safe area */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.sidebar-logo {
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .title {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700;
+  color: var(--gold2);
+  line-height: 1.3;
+}
+.sidebar-logo .subtitle {
+  font-size: 11px; color: var(--muted); margin-top: 3px;
+  font-family: var(--font-ar);
+}
+.sidebar-nav { padding: 10px 8px; overflow-y: auto; flex:1; -webkit-overflow-scrolling: touch; }
+.nav-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--muted);
+  padding: 10px 8px 6px;
+}
+.nav-btn {
+  width: 100%; text-align: left; cursor: pointer;
+  padding: 11px 12px; border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted2); font-family: var(--font-ar);
+  font-size: 13px; font-weight: 600;
+  margin: 2px 0;
+  display: flex; align-items: center; gap: 9px;
+  transition: all .15s;
+}
+.nav-btn .icon { font-size: 16px; opacity: .8; }
+.nav-btn:hover { background: rgba(255,255,255,.05); color: var(--text); }
+.nav-btn.active {
+  background: rgba(61,127,255,.15);
+  border-color: rgba(61,127,255,.35);
+  color: var(--text);
+}
+.nav-btn .badge-count {
+  margin-left: auto;
+  font-size: 10px; font-weight: 700;
+  background: rgba(255,255,255,.1);
+  padding: 2px 6px; border-radius: 99px; color: var(--muted2);
+}
+.nav-btn.active .badge-count { background: rgba(61,127,255,.3); color: var(--accent); }
+.nav-btn.danger-btn .badge-count { background: rgba(244,63,94,.25); color: var(--red); }
+
+.sidebar-bottom {
+  padding: 12px 8px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.sidebar-bottom .nav-btn { font-size: 12px; }
+
+/* ── MAIN ── */
+.main {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  padding: 14px 20px;
+  padding-top: calc(14px + env(safe-area-inset-top));
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,14,30,.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex; align-items: center; gap: 10px;
+  min-height: 62px;
+  flex-shrink: 0;
+  /* Prevent topbar from being clipped */
+  position: relative; z-index: 10;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 700; color: var(--gold2);
+  flex: 1;
+}
+.topbar-meta { font-size: 12px; color: var(--muted); }
+.ham-btn {
+  display: none;
+  width: 40px; height: 40px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.05);
+  border-radius: 12px; color: var(--text);
+  font-size: 18px; cursor: pointer;
+  align-items: center; justify-content: center;
+}
+.icon-btn {
+  width: 40px; height: 40px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.05);
+  border-radius: 12px; color: var(--muted2);
+  font-size: 17px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.icon-btn:hover { border-color: var(--border2); color: var(--text); background: rgba(255,255,255,.09); }
+.icon-btn:active { transform: scale(.92); }
+.icon-btn.lit { border-color: rgba(61,127,255,.4); background: rgba(61,127,255,.15); color: var(--accent); }
+
+/* ── PAGE VIEWS ── */
+.page {
+  display:none; flex:1; overflow-y:auto; padding: 20px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  /* Bottom safe area for iPhone home indicator */
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+.page.active { display: block; }
+
+/* ── OVERVIEW / DASHBOARD ── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dash-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative; overflow: hidden;
+}
+.dash-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  opacity: 0;
+  transition: opacity .2s;
+}
+.dash-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.dash-card:hover::before { opacity: 1; }
+.dash-card .cls-name {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700; color: var(--gold2);
+  margin-bottom: 8px;
+}
+.dash-card .cls-count { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.dash-stat { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; }
+.dash-stat .lbl { color: var(--muted); }
+.dash-stat .val { font-weight: 700; font-family: var(--font-mono); }
+.dash-stat .val.good { color: var(--green); }
+.dash-stat .val.mid { color: var(--amber); }
+.dash-stat .val.bad { color: var(--red); }
+.risk-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 99px;
+  font-size: 10px; font-weight: 700;
+  margin-top: 8px;
+}
+.risk-pill.ok { background: rgba(34,197,94,.15); color: var(--green); }
+.risk-pill.warn { background: rgba(245,158,11,.15); color: var(--amber); }
+.risk-pill.danger { background: rgba(244,63,94,.15); color: var(--red); }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700; color: var(--gold2);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border2), transparent);
+}
+
+/* ── SETTINGS CHIPS ── */
+.settings-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;
+  margin-bottom: 20px;
+}
+.settings-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px;
+}
+.settings-card h4 { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.weight-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.weight-row label { font-size: 13px; color: var(--muted2); font-weight: 600; flex: 1; }
+.weight-inp {
+  width: 72px; padding: 7px 10px;
+  border-radius: 10px; border: 1px solid var(--border2);
+  background: rgba(0,0,0,.3); color: var(--text);
+  font-family: var(--font-mono); font-size: 16px; font-weight: 600;
+  outline: none; text-align: right;
+  transition: border-color .15s;
+  -webkit-appearance: none; appearance: none;
+}
+.weight-inp:focus { border-color: rgba(61,127,255,.5); }
+.weight-total {
+  text-align: right; font-family: var(--font-mono);
+  font-size: 13px; font-weight: 700; margin-top: 8px;
+  padding-top: 8px; border-top: 1px solid var(--border);
+}
+.weight-total.ok { color: var(--green); }
+.weight-total.bad { color: var(--red); }
+
+/* ── CLASS TABLE VIEW ── */
+.class-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.search-box {
+  flex: 1; min-width: 180px;
+  padding: 10px 14px; border-radius: 12px;
+  border: 1px solid var(--border2);
+  background: rgba(0,0,0,.25); color: var(--text);
+  font-family: var(--font-ar); font-size: 16px; outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none; appearance: none;
+}
+.search-box:focus { border-color: rgba(61,127,255,.5); }
+.search-box::placeholder { color: var(--muted); }
+.tool-btn {
+  padding: 10px 14px;
+  border-radius: 12px; border: 1px solid var(--border2);
+  background: rgba(255,255,255,.05); color: var(--muted2);
+  font-family: var(--font-ar); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.tool-btn:hover { border-color: var(--border2); color: var(--text); background: rgba(255,255,255,.09); }
+.tool-btn:active { transform: scale(.96); }
+.tool-btn.primary {
+  background: rgba(61,127,255,.15);
+  border-color: rgba(61,127,255,.35); color: var(--accent);
+}
+.tool-btn.danger { background: rgba(244,63,94,.1); border-color: rgba(244,63,94,.3); color: var(--red); }
+
+/* ── STATS ROW ── */
+.stats-row {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.stat-chip {
+  padding: 8px 14px; border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.03);
+  font-size: 12px; font-weight: 600; color: var(--muted2);
+  display: flex; align-items: center; gap: 7px;
+}
+.stat-chip strong { font-size: 15px; font-family: var(--font-mono); color: var(--text); }
+.stat-chip.green-chip { border-color: rgba(34,197,94,.2); background: rgba(34,197,94,.06); }
+.stat-chip.green-chip strong { color: var(--green); }
+.stat-chip.red-chip { border-color: rgba(244,63,94,.2); background: rgba(244,63,94,.06); }
+.stat-chip.red-chip strong { color: var(--red); }
+.stat-chip.gold-chip { border-color: rgba(201,168,76,.2); background: rgba(201,168,76,.06); }
+.stat-chip.gold-chip strong { color: var(--gold2); }
+
+/* ── TABLE ── */
+.tablewrap {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+thead th {
+  padding: 11px 12px;
+  background: #0a1628;
+  border-bottom: 2px solid rgba(61,127,255,.25);
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .9px; color: #6b82a8;
+  text-align: left; white-space: nowrap;
+  position: sticky; top: 0; z-index: 2;
+}
+thead th:first-child { width: 42px; text-align: center; }
+tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: background .1s;
+}
+tbody tr:nth-child(odd) td { background: rgba(255,255,255,.025); }
+tbody tr:nth-child(even) td { background: rgba(0,0,0,.15); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover td { background: rgba(61,127,255,.1) !important; }
+tbody tr.at-risk td { background: rgba(244,63,94,.06) !important; }
+tbody tr.at-risk:hover td { background: rgba(244,63,94,.12) !important; }
+td {
+  padding: 10px 12px;
+  font-size: 13px; vertical-align: middle;
+  border-right: 1px solid rgba(255,255,255,.04);
+}
+td:last-child { border-right: none; }
+/* Name column gets a stronger left border as visual anchor */
+td.name-cell {
+  min-width: 190px; max-width: 230px;
+  border-right: 2px solid rgba(61,127,255,.15) !important;
+}
+td.num { text-align: center; font-family: var(--font-mono); font-size: 13px; color: var(--muted); width: 42px; }
+td.name-cell { min-width: 190px; max-width: 230px; }
+.name-inp {
+  width: 100%; padding: 8px 10px;
+  border-radius: 10px; border: 1px solid transparent;
+  background: transparent; color: #ffffff;
+  font-family: var(--font-ar); font-size: 16px; font-weight: 700;
+  outline: none; transition: all .15s;
+  direction: rtl;
+  letter-spacing: 0.2px;
+  -webkit-appearance: none; appearance: none;
+}
+.name-inp:hover { border-color: var(--border); background: rgba(255,255,255,.06); }
+.name-inp:focus { border-color: rgba(61,127,255,.5); background: rgba(0,0,0,.3); }
+.name-inp::placeholder { color: var(--muted); font-weight: 400; }
+
+/* Score input */
+.score-inp {
+  width: 62px; padding: 8px 4px;
+  border-radius: 10px; border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.35); color: #dde8ff;
+  font-family: var(--font-mono); font-size: 16px; font-weight: 600;
+  outline: none; text-align: center; transition: all .15s;
+  -webkit-appearance: none; appearance: none;
+  display: block;
+}
+.score-inp:focus { border-color: rgba(61,127,255,.6); background: rgba(61,127,255,.1); color: #fff; }
+
+/* Final score — pill style, hard to miss */
+.final-score {
+  font-family: var(--font-mono); font-size: 16px; font-weight: 800;
+  text-align: center; min-width: 62px;
+  padding: 6px 10px; border-radius: 10px;
+  display: inline-block; letter-spacing: .3px;
+}
+.final-score.good { color: #4ade80; background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.25); }
+.final-score.mid  { color: #fbbf24; background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.25); }
+.final-score.low  { color: #fb7185; background: rgba(244,63,94,.15);  border: 1px solid rgba(244,63,94,.25); }
+
+/* ── PARTICIPATION CELL ── */
+.part-cell {
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.part-tap {
+  width: 38px; height: 38px; border-radius: 10px;
+  border: 1px solid rgba(6,182,212,.25);
+  background: rgba(6,182,212,.08);
+  color: var(--cyan); font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s; user-select: none; flex-shrink: 0;
+}
+.part-tap:active { transform: scale(.86); background: rgba(6,182,212,.22); }
+.part-minus {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: var(--muted); font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .12s; user-select: none; flex-shrink: 0;
+}
+.part-minus:active { transform: scale(.86); }
+.part-score {
+  font-family: var(--font-mono); font-size: 14px; font-weight: 800;
+  color: var(--cyan); min-width: 22px; text-align: center;
+}
+
+/* ── DISCIPLINE CELL ── */
+.disc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px; border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
+  user-select: none;
+}
+.disc-badge:active { transform: scale(.95); }
+.disc-badge.ok { border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.1); color: var(--green); }
+.disc-badge.warn { border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.1); color: var(--amber); }
+.disc-badge.danger { border-color: rgba(244,63,94,.3); background: rgba(244,63,94,.1); color: var(--red); }
+
+/* ── ABSENCE CELL ── */
+.abs-cell { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.abs-tap {
+  width: 38px; height: 38px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  color: var(--muted); font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s; flex-shrink: 0;
+  font-weight: 700;
+}
+.abs-tap.marked {
+  border-color: rgba(244,63,94,.5);
+  background: rgba(244,63,94,.18); color: #fb7185;
+}
+.abs-tap:active { transform: scale(.86); }
+.abs-count {
+  font-family: var(--font-mono); font-size: 14px; font-weight: 800;
+  cursor: pointer; min-width: 24px; text-align: center;
+  color: var(--muted2);
+  padding: 3px 7px; border-radius: 8px;
+  transition: all .15s;
+}
+.abs-count:hover { background: rgba(255,255,255,.08); color: var(--text); }
+.abs-count.has-abs {
+  color: #fb7185;
+  background: rgba(244,63,94,.12);
+  border: 1px solid rgba(244,63,94,.2);
+}
+
+/* ── ABSENCE REPORT BUTTON (on dash cards) ── */
+.abs-report-btn {
+  width: 100%; margin-top: 10px;
+  padding: 11px 12px; border-radius: 12px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.05);
+  color: var(--muted2); font-family: var(--font-ar);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; text-align: center;
+  transition: all .15s;
+  display: block;
+}
+.abs-report-btn:active { transform: scale(.97); }
+.abs-report-btn.has-absent {
+  border-color: rgba(244,63,94,.4);
+  background: rgba(244,63,94,.12);
+  color: #fb7185;
+}
+.abs-report-btn.has-absent:hover {
+  background: rgba(244,63,94,.2);
+}
+
+/* ── ABSENCE REPORT CARD (inside modal) ── */
+.abs-report-card {
+  border-radius: 14px;
+  border: 1px solid var(--border2);
+  overflow: hidden;
+  background: rgba(0,0,0,.2);
+}
+.abs-report-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #1a2d5a, #0f1e42);
+  color: #fff; gap: 12px;
+}
+.abs-count-badge {
+  background: rgba(244,63,94,.85);
+  color: #fff; border-radius: 12px;
+  padding: 8px 14px; text-align: center;
+  font-family: var(--font-mono);
+  font-size: 26px; font-weight: 800; line-height: 1;
+  min-width: 64px;
+  flex-shrink: 0;
+}
+.abs-report-rows { padding: 8px 0; }
+.abs-report-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  direction: rtl;
+}
+.abs-report-row:last-child { border-bottom: none; }
+.abs-report-num {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  color: #fb7185;
+  background: rgba(244,63,94,.12);
+  border: 1px solid rgba(244,63,94,.25);
+  border-radius: 8px; padding: 3px 8px;
+  min-width: 36px; text-align: center;
+  flex-shrink: 0;
+}
+.abs-report-name {
+  font-size: 15px; font-weight: 700; color: #fff;
+  flex: 1;
+}
+
+
+.risk-flag {
+  display: inline-flex; align-items: center;
+  width: 22px; height: 22px;
+  border-radius: 6px; font-size: 12px;
+  justify-content: center;
+}
+.risk-flag.show { background: rgba(244,63,94,.2); }
+
+/* ── MODALS ── */
+.overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none; align-items: flex-end; justify-content: center;
+  /* iPhone: allow touch to pass through to close button */
+  touch-action: none;
+  /* Safe area aware */
+  padding-bottom: 0;
+}
+.overlay.show { display: flex; }
+.overlay.center { align-items: center; }
+.sheet {
+  width: 100%; max-width: 680px;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px;
+  /* Safe area for iPhone home indicator */
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  animation: slideUp .25s cubic-bezier(.34,1.56,.64,1);
+}
+.sheet.wide { max-width: 900px; }
+.dialog {
+  width: min(600px,96vw);
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 20px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: popIn .2s cubic-bezier(.34,1.56,.64,1);
+  margin: 10px;
+}
+@keyframes slideUp { from{transform:translateY(50px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes popIn { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
+.sheet-handle {
+  width: 40px; height: 4px; border-radius: 99px;
+  background: var(--border2); margin: 0 auto 16px;
+}
+.sheet-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700; color: var(--gold2);
+  margin-bottom: 4px;
+  direction: rtl; text-align: right;
+}
+.sheet-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; direction: rtl; text-align: right; }
+.close-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+.x-btn {
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.05); color: var(--muted2);
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.x-btn:hover { color: var(--text); border-color: var(--border2); }
+
+/* ── DISCIPLINE MODAL ── */
+.inc-cats {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px; margin-bottom: 14px;
+}
+.cat-btn {
+  padding: 12px 10px; border-radius: 14px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.04); color: var(--text);
+  font-family: var(--font-ar); font-size: 12px; font-weight: 700;
+  cursor: pointer; text-align: center; transition: all .15s;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.cat-btn .cat-icon { font-size: 22px; }
+.cat-btn:active { transform: scale(.94); }
+.cat-btn.low-cat:active { background: rgba(245,158,11,.2); border-color: rgba(245,158,11,.4); }
+.cat-btn.high-cat:active { background: rgba(244,63,94,.2); border-color: rgba(244,63,94,.4); }
+.cat-btn.low-cat { border-color: rgba(245,158,11,.2); }
+.cat-btn.high-cat { border-color: rgba(244,63,94,.2); }
+
+.inc-log { display: flex; flex-direction: column; gap: 6px; }
+.inc-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.03);
+  gap: 10px;
+}
+.inc-item .inc-info { flex: 1; }
+.inc-item .inc-label { font-size: 13px; font-weight: 600; direction: rtl; text-align: right; }
+.inc-item .inc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.inc-item .rm-btn {
+  padding: 5px 10px; border-radius: 8px;
+  border: 1px solid rgba(244,63,94,.3);
+  background: rgba(244,63,94,.1); color: var(--red);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+}
+
+/* ── ABSENCE CALENDAR ── */
+.cal-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.cal-month-label {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; color: var(--gold2);
+}
+.cal-arrow {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.05); color: var(--muted2);
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.cal-arrow:hover { color: var(--text); }
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7,1fr); gap: 5px;
+}
+.cal-day-lbl {
+  text-align: center; font-size: 10px; font-weight: 700;
+  color: var(--muted); padding: 4px 0; text-transform: uppercase;
+}
+.cal-cell {
+  aspect-ratio: 1; border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.03);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all .15s;
+}
+.cal-cell.empty { opacity: .25; cursor: default; background: transparent; border-color: transparent; }
+.cal-cell.today { border-color: rgba(61,127,255,.5); color: var(--accent); }
+.cal-cell.absent { background: rgba(244,63,94,.2); border-color: rgba(244,63,94,.45); color: var(--red); }
+.cal-cell:not(.empty):hover { border-color: var(--border2); }
+
+/* ── STUDENT PROFILE ── */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+@media(max-width:500px){ .profile-grid{grid-template-columns:1fr} }
+.profile-card {
+  background: rgba(0,0,0,.2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px;
+}
+.profile-card h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 10px; }
+.profile-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.profile-row:last-child { border-bottom: none; }
+.profile-row .lbl { color: var(--muted2); }
+.profile-row .val { font-family: var(--font-mono); font-weight: 700; }
+.profile-final {
+  text-align: center; padding: 16px;
+  background: rgba(0,0,0,.25); border: 1px solid var(--border);
+  border-radius: 14px; margin-bottom: 14px;
+}
+.profile-final .big {
+  font-family: var(--font-display);
+  font-size: 42px; font-weight: 700; line-height: 1;
+}
+.profile-final .big.good { color: var(--green); }
+.profile-final .big.mid { color: var(--amber); }
+.profile-final .big.low { color: var(--red); }
+.profile-final .out20 { font-size: 18px; color: var(--muted); }
+
+/* ── AT-RISK PAGE ── */
+.risk-list { display: flex; flex-direction: column; gap: 10px; }
+.risk-card {
+  background: var(--panel); border: 1px solid rgba(244,63,94,.2);
+  border-radius: var(--radius); padding: 14px;
+  display: flex; gap: 14px; align-items: flex-start;
+  cursor: pointer; transition: all .15s;
+}
+.risk-card:hover { border-color: rgba(244,63,94,.4); }
+.risk-card .risk-num {
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  min-width: 24px; text-align: center; padding-top: 2px;
+}
+.risk-card .risk-name {
+  font-size: 15px; font-weight: 700; direction: rtl;
+  margin-bottom: 6px;
+}
+.risk-card .risk-cls { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+.risk-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.risk-tag {
+  padding: 3px 8px; border-radius: 99px;
+  font-size: 11px; font-weight: 700;
+}
+.risk-tag.abs { background: rgba(244,63,94,.15); color: var(--red); }
+.risk-tag.disc { background: rgba(245,158,11,.15); color: var(--amber); }
+.risk-tag.grade { background: rgba(61,127,255,.15); color: var(--accent); }
+
+/* ── PRINT REPORT (Arabic) ── */
+.report-preview {
+  background: #fff; color: #111;
+  border-radius: var(--radius); padding: 0;
+  font-family: var(--font-ar);
+  direction: rtl;
+  border: 1px solid var(--border2);
+  overflow: hidden;
+}
+.rpt-header {
+  background: #1a2d5a; color: #fff;
+  padding: 20px 24px;
+  text-align: center;
+}
+.rpt-header h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.rpt-header p { font-size: 12px; opacity: .8; }
+.rpt-body { padding: 20px 24px; }
+.rpt-section { margin-bottom: 18px; }
+.rpt-section h2 {
+  font-size: 14px; font-weight: 700; color: #1a2d5a;
+  border-bottom: 2px solid #c9a84c; padding-bottom: 6px; margin-bottom: 10px;
+}
+.rpt-row {
+  display: flex; justify-content: space-between;
+  padding: 7px 10px; font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.rpt-row:nth-child(odd) { background: #f9f9ff; }
+.rpt-row .key { color: #444; font-weight: 600; }
+.rpt-row .value { font-weight: 700; color: #1a2d5a; }
+.rpt-row .value.red { color: #c0392b; }
+.rpt-row .value.green { color: #27ae60; }
+.rpt-incidents { font-size: 12px; line-height: 1.8; color: #333; }
+.rpt-footer {
+  padding: 14px 24px;
+  background: #f5f5f5;
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: #666;
+  gap: 20px; flex-wrap: wrap;
+}
+.rpt-sig { display: flex; flex-direction: column; gap: 4px; min-width: 200px; }
+.rpt-sig .sig-line { border-bottom: 1px solid #999; width: 200px; height: 28px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 11px 20px; border-radius: 14px;
+  font-size: 13px; font-weight: 700;
+  z-index: 500;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── MOBILE / iPHONE ── */
+@media(max-width:700px){
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    transform: translateX(-100%);
+    padding-left: env(safe-area-inset-left);
+  }
+  .sidebar.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,.5); }
+  .ham-btn { display: flex; }
+  .overlay-sidebar {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 49;
+    display: none;
+  }
+  .overlay-sidebar.show { display: block; }
+
+  /* Page padding accounts for safe areas */
+  .page {
+    padding: 12px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    gap: 8px;
+  }
+  /* Save indicator compact on mobile */
+  #saveIndicator span:last-child { display: none; }
+
+  /* Larger tap targets for iPhone */
+  .nav-btn { padding: 14px 12px; font-size: 14px; }
+  .tool-btn { padding: 12px 14px; font-size: 13px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .ham-btn { width: 44px; height: 44px; }
+  .part-tap { width: 44px; height: 44px; border-radius: 14px; }
+  .part-minus { width: 36px; height: 36px; }
+  .abs-tap { width: 44px; height: 44px; border-radius: 14px; font-size: 20px; }
+  .disc-badge { padding: 10px 14px; font-size: 13px; }
+  .cat-btn { padding: 16px 10px; min-height: 70px; }
+  .x-btn { width: 44px; height: 44px; }
+  .cal-cell { font-size: 14px; border-radius: 12px; }
+  .cal-arrow { width: 44px; height: 44px; }
+
+  /* Table: switch to horizontal scroll mode */
+  .tablewrap { border-radius: 12px; }
+  table { min-width: 700px; }
+  td { padding: 12px 10px; }
+  thead th { padding: 12px 10px; }
+
+  /* Bigger final score on mobile */
+  .final-score { font-size: 16px; }
+
+  /* Dash cards stack tighter */
+  .dash-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dash-card { padding: 14px 12px; }
+  .dash-card .cls-name { font-size: 14px; }
+
+  /* Settings stack */
+  .settings-grid { grid-template-columns: 1fr; }
+  .weight-inp { width: 90px; }
+
+  /* Risk cards */
+  .risk-card { padding: 12px; }
+
+  /* Bottom sheet taller on iPhone */
+  .sheet { max-height: 88vh; max-height: 88dvh; }
+}
+
+/* iPhone landscape */
+@media(max-width:900px) and (orientation:landscape){
+  .topbar { padding-top: calc(8px + env(safe-area-inset-top)); min-height: 52px; }
+  .page { padding-top: 12px; }
+}
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* Empty state */
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--muted);
+}
+.empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="overlay-sidebar" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="title">دفتر الأستاذ</div>
+    <div class="subtitle">Gradebook Pro • 2025–2026</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Navigation</div>
+    <button class="nav-btn active" onclick="showPage('overview')" id="nav-overview">
+      <span class="icon">🏠</span> Overview
+    </button>
+    <button class="nav-btn" onclick="showPage('atrisk')" id="nav-atrisk">
+      <span class="icon">⚠️</span> At-Risk Students
+      <span class="badge-count danger-count" id="riskCount">0</span>
+    </button>
+
+    <div class="nav-section-label" style="margin-top:8px">Classes</div>
+    <div id="classNavList"></div>
+
+    <div class="nav-section-label" style="margin-top:8px">Tools</div>
+    <button class="nav-btn" onclick="showPage('settings')" id="nav-settings">
+      <span class="icon">⚙️</span> Grade Weights
+    </button>
+    <button class="nav-btn" onclick="backupData()">
+      <span class="icon">💾</span> Backup Data
+    </button>
+    <button class="nav-btn" onclick="document.getElementById('restoreFile').click()">
+      <span class="icon">📂</span> Restore Data
+    </button>
+    <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(event)"/>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="ham-btn" id="hamBtn" onclick="openSidebar()">☰</button>
+    <div class="topbar-title" id="topbarTitle">Overview</div>
+    <div class="topbar-meta" id="topbarMeta"></div>
+    <div id="saveIndicator" style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:12px;border:1px solid var(--border2);background:rgba(255,255,255,.04);font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;transition:all .4s;">
+      <span id="saveIcon">💾</span><span id="saveText">لم يُحفظ بعد</span>
+    </div>
+    <span id="syncDot" title="Google Sheets sync" style="font-size:18px;opacity:.3;cursor:default;transition:all .5s">☁️</span>
+    <button class="icon-btn" id="manualSaveBtn" onclick="manualSave()" title="حفظ الآن" style="font-size:15px">💾</button>
+    <button class="icon-btn" onclick="toggleProjector()" title="Projector mode" id="projBtn">🌞</button>
+  </div>
+
+  <!-- OVERVIEW PAGE -->
+  <div class="page active" id="page-overview">
+    <div class="section-title">All Classes</div>
+    <div class="dash-grid" id="dashGrid"></div>
+  </div>
+
+  <!-- AT-RISK PAGE -->
+  <div class="page" id="page-atrisk">
+    <div class="section-title">⚠️ At-Risk Students</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Students with final grade &lt; 10, absences ≥ 5, or 3+ discipline incidents.</p>
+    <div class="risk-list" id="riskList"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="section-title">⚙️ Grade Weights</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Customize the weight of each component. Total must equal 100%.</p>
+
+    <!-- GOOGLE SHEETS SYNC CARD -->
+    <div class="settings-card" style="margin-bottom:16px;border-color:rgba(66,186,150,.25);background:rgba(66,186,150,.04)">
+      <h4 style="color:#42ba96">☁️ Google Sheets Sync</h4>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.7">
+        Paste your Google Apps Script URL below. All data will sync automatically to your Google Sheet.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input
+          class="search-box"
+          id="gsUrl"
+          type="url"
+          placeholder="https://script.google.com/macros/s/…/exec"
+          style="font-size:13px;flex:1;min-width:200px;font-family:var(--font-mono)"
+          oninput="saveGsUrl()"
+        />
+        <button class="tool-btn primary" onclick="testConnection()" id="testBtn">🔗 Test</button>
+        <button class="tool-btn primary" onclick="pushAllToSheets()" id="pushBtn" style="background:rgba(66,186,150,.15);border-color:rgba(66,186,150,.4);color:#42ba96">☁️ Push All</button>
+      </div>
+      <div id="gsStatus" style="margin-top:10px;font-size:12px;font-weight:700;min-height:18px"></div>
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7">
+        <b style="color:var(--muted2)">Auto-sync:</b> Every change saves to localStorage instantly and queues a sync to Google Sheets.<br/>
+        <b style="color:var(--muted2)">Push All:</b> Force-upload everything to Google Sheets at once.<br/>
+        <b style="color:var(--muted2)">Pull:</b> On app load, data is fetched from Google Sheets automatically.
+      </div>
+    </div>
+
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h4>Component Weights (%)</h4>
+        <div class="weight-row"><label>Homework</label><input class="weight-inp" id="w-hw" type="number" min="0" max="100" step="1" value="8" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Participation</label><input class="weight-inp" id="w-part" type="number" min="0" max="100" step="1" value="8" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Discipline</label><input class="weight-inp" id="w-disc" type="number" min="0" max="100" step="1" value="8" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Copybook</label><input class="weight-inp" id="w-copy" type="number" min="0" max="100" step="1" value="8" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Absence</label><input class="weight-inp" id="w-abs" type="number" min="0" max="100" step="1" value="8" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Test 1</label><input class="weight-inp" id="w-t1" type="number" min="0" max="100" step="1" value="15" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Test 2</label><input class="weight-inp" id="w-t2" type="number" min="0" max="100" step="1" value="15" oninput="updateWeights()"/></div>
+        <div class="weight-row"><label>Global Test</label><input class="weight-inp" id="w-glob" type="number" min="0" max="100" step="1" value="30" oninput="updateWeights()"/></div>
+        <div class="weight-total" id="weightTotal">Total: 100% ✓</div>
+      </div>
+      <div class="settings-card">
+        <h4>Participation Settings</h4>
+        <div class="weight-row">
+          <label>Target points for 20/20</label>
+          <input class="weight-inp" id="partTarget" type="number" min="1" max="200" value="20" oninput="saveSettings()"/>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6">
+          Score = min(20, (points ÷ target) × 20)<br/>
+          Tap ⭐ in table to add +1 point instantly.
+        </div>
+        <div class="divider"></div>
+        <h4>Term Settings</h4>
+        <div class="weight-row">
+          <label>Term start date</label>
+          <input class="weight-inp" id="termStart" type="date" value="2026-02-18" style="width:140px" oninput="saveSettings()"/>
+        </div>
+        <div class="weight-row">
+          <label>Academic year</label>
+          <input class="weight-inp" id="academicYear" type="text" value="2025–2026" style="width:120px;font-size:12px" oninput="saveSettings()"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASS PAGES (generated dynamically) -->
+  <div id="classPages"></div>
+</div>
+</div>
+
+<!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- DISCIPLINE MODAL -->
+<div class="overlay" id="discOverlay" onclick="closeIfBg(event,'discOverlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="close-row">
+      <div>
+        <div class="sheet-title" id="discModalName">—</div>
+        <div class="sheet-sub" id="discModalMeta">—</div>
+      </div>
+      <button class="x-btn" onclick="closeDisc()">✕</button>
+    </div>
+    <div class="inc-cats" id="incCats"></div>
+    <div class="divider"></div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Logged Incidents</p>
+    <div class="inc-log" id="incLog"></div>
+  </div>
+</div>
+
+<!-- ABSENCE CALENDAR MODAL -->
+<div class="overlay" id="absOverlay" onclick="closeIfBg(event,'absOverlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="close-row">
+      <div>
+        <div class="sheet-title" id="absModalName">—</div>
+        <div class="sheet-sub" id="absModalMeta">—</div>
+      </div>
+      <button class="x-btn" onclick="closeAbs()">✕</button>
+    </div>
+    <div class="cal-nav">
+      <button class="cal-arrow" onclick="calPrev()">◀</button>
+      <div class="cal-month-label" id="calMonthLabel">—</div>
+      <button class="cal-arrow" onclick="calNext()">▶</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="divider"></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:4px" id="absDatesList"></p>
+  </div>
+</div>
+
+<!-- STUDENT PROFILE MODAL -->
+<div class="overlay center" id="profileOverlay" onclick="closeIfBg(event,'profileOverlay')">
+  <div class="dialog">
+    <div class="close-row">
+      <div>
+        <div class="sheet-title" id="profileName">—</div>
+        <div class="sheet-sub" id="profileMeta">—</div>
+      </div>
+      <button class="x-btn" onclick="closeProfile()">✕</button>
+    </div>
+    <div id="profileBody"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <button class="tool-btn primary" onclick="printArabicReport()">🖨️ طباعة التقرير بالعربية</button>
+      <button class="tool-btn" onclick="closeProfile()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ABSENCE REPORT MODAL -->
+<div class="overlay" id="absReportOverlay" onclick="closeIfBg(event,'absReportOverlay')">
+  <div class="sheet" id="absReportSheet">
+    <div class="sheet-handle"></div>
+    <div class="close-row">
+      <div>
+        <div class="sheet-title" id="absReportTitle">—</div>
+        <div class="sheet-sub" id="absReportSub">—</div>
+      </div>
+      <button class="x-btn" onclick="closeAbsReport()">✕</button>
+    </div>
+    <div id="absReportBody"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="tool-btn primary" id="absReportCopyBtn" onclick="copyAbsReport()" style="flex:1;justify-content:center;font-size:14px;padding:14px">
+        📋 نسخ التقرير
+      </button>
+      <button class="tool-btn" onclick="closeAbsReport()" style="font-size:14px;padding:14px">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════
+// DATA
+// ════════════════════════════════════
+const DATA = {"TCS-1":["نورة الفلاقي","ياسين الرويسي","أنس الفتيري","ياسين اليعقوبي","أمين الوحدي","سعد حامدو","يحيى شنيوب","عمر المنصوري","فارس الأشقر","حنان هروال","عبد الرحمن شاكر","فاطمة الزهراء الوردي","حمزة زردبان","محمد الفوكي","آدم القاسمي","عمر الفاطمي","سناء الحافي","مراد بوصفيحة","يوسف السعيدي","دعاء احكورش","يوسف الزوين","ياسمين المزراي","معاد غريفي","صلاح الدين عزيز","حليمة قبان","آدم قوق","مجدولين هدان","لبنى احكوش","نادية اجدع","فاطمة الزهراء حنين","كوثر لطفي","مريم لبوز","صديقة حنين","محمد الوزاني","بدر بوكساكس","مريم جعون","محمد أمين امسغرو","إيمان خلادي","عصام عالم"],"TCS-2":["مروة روق","ابتسام الجنتاني الإدريسي","يوسف الدريوش","عمران العمري","حمزة أفريكل","عماد شكر الله","هاجر بومديان","حمزة واصل","مروان الركينة","أمين السليماني","فاطمة الزهراء بيلان","رميـساء مساعد","وديع الكرزنيفي","محمد سنوسي عموري","أيمن طرفاوي","يوسف البوريزدي","محمد التميمي","أسامة عزوزي","ادريس واصل","محمد بنشعبان","سهيل لزعر","دعاء الماضي","أيمن اسميـدة","ياسين محي الدين","آدم عيشوش","فاطمة الزهراء الخلوفي","سمير القرمودي","رباب العسري","بوخال مروان","مروان حومالك","حمزة حسنية فيلالي","غفران احديدان","فاطمة الزهراء العزيزي","صفية احديدان","سناء بنقادة","هدى المسعودي","فردوس الزوني","محمد كتامي","فاطمة الزهراء الحازم","ولاء العيسوي","فخر الدين فرج","أمينة اغزال"],"TCSF-1":["فاطمة الزهراء ابن الشريف","ردينة المتوني","آية لشعل","صوفيا المصدورة","بلال الزغاري","رضى بن داود","فاطمة الزهراء سكاح","دعاء العروسي","فردوس والي علمي","هبة ديدي","عبد الرزاق المغاري","فاطمة الزهراء الزروقي","أيمن الجباري","هدى بوشبكة","رانيا بن دحمان","آدم بيلول","مروان عايدي","فرح الديويّة","فاطمة الزهراء الدحماني","محمد الحمادي","عديل العشورة","حمزة سحلاماسي","طه السهلي","ياسين الحادق","المهدي الكريني","حليمة المسكني","محمد حسيني","فاطمة الزهراء بن حسين","إبراهيم الذكي","مريم أشعوبية","محمد حاتم الحقوني","فرح هتمي","محمد أمين المرضي","بدر الدين كرموم","شيماء خرشال","لطيفة معتنان","هاجر الصمودي","أميمة البكوري","صلاح الدين الكرافي","أسماء المتوكل","شيماء حامدو","وئام بوهرير"],"TCSF-2":["حسام ابريش","وئام الزعجم","أيمن المنكي","أيوب بوخيرة","زكرياء حمدي","منير الركيبي","نهيلة الوزن","سناء فر","ملاك الحمارتي","سناء الميموني","عدنان النصوص","يونس البهالي","دعاء السملالي","ملاك القاسمي","هناء اجبيلو","لعطاش سليمة","ياسين اعطو","أمين المنتصر","آية الحجاجي","آدم مريج","محمد علي بدوي","عمر البكار","حاتم المطلاسي","إلياس بنخدة","نعيمة أنجرن","محمد الدريماني","صفوان مهدي","المرابط هدى","طه هدافي","سلمى الشنوعي","سكينة شطاط","هناء لشقر","فاطمة الزهراء حماني","يوسف أحماد","رضوان بن بوشتى العسري","بلال الحيوني","زينب العنقي","زهير العنقي","ندى ميسور","لمياء قويدر","آية الحداد","محمد اللبان","يسرى البوشيخي"],"TCSF-3":["عمر الهواري","فردوس بن يوسف","فوزي عينوس","وليد الخريفي","زياد حومالك","صبير اقشيقش","عثمان حياني زاهد","دعاء شجاع","جودية اشقر","حفصة التالبي","صابر شاكر","يحيى خالقي","فاطمة الزهراء الفيلالي","يحيى ونجلي","دعاء حماني","مروة حميدو","فاطمة الزهراء الزاوي","عمر المنصوري","صابرينا السميري","شيماء الهاشمي","عبد الرحيم ازعيط","بلال العماري","مصعب الإدريسي","ريمساء الخياطي زرهوني","فاطمة الزهراء الزروق","أنوار الزوبعي","آسية أحسيس","آدم طحمس","أيوب بطمي","آية مفتاح","مروة ملوك","فاطمة الزهراء البرقي","محمد حجوج","سعيد الكلعي","آية الحمجومي","مهدي أنقيرة","آية بياح","حفصة العادل","ريم زرقان","لبنى مشواحي","مراد لكساس","هبة العبودي","ملاك الفارسي","آدم العيسيري"],"2BACSP-1":["سيف الدين أفري","مروان الرفالي","آدم بن داود","نجوى أفريكل","إلهام منصور","علاء العادل","بهيجة الهيسوف","إسحاق الهيوب","يسرى سرغيني الإدريسي","أيوب كريطيط","هناء الفرع","دعاء سقاط","أنس الكتوني","رحاب مزوغي","سلمى الإدريسي","مريم بوصفيحة","معاد بحتر","سمية قبي","سلمى العزيزي","سلمى بكوش","حمزة أضعيف","أسماء سرغيني الإدريسي","أشرف الوكيلي","الغوالي حاتم","محمد بوسلامتي","دعاء حمين","أمين مديدش","شيماء العلويشي","محمد الزهراوي","سلوى بن الشيخ","ندى آيت لوحي","خديجة صلحي","أسامة الأشهب","يوسف العاصمي","نادية العنتري"],"2BACSP-2":["بثينة الشيخ","سلمى حاجي","فراح المغاري","آية الزعجم","دعاء قرفي","ادريس الحضري","ثريا الشمخاني","حميد الدادسي","رانية أقديم","كوثر لزعر","مروان البورقادي","رحاب ابن الحاج","يوسف الفهدي","غزلان زهيرة","فيصل الغاري","خديجة العزوزي","ياسين كعيدة","كوثر الدرادابي","فاطمة الزهراء العكري","حسام الدين إبراهيم","جهان بوكريبات","أسامة مالكي","محمد خالد","حفصة الإدريسي المصباحي","سفيان خزازي","بدر جناني الدرسي","أنس التوكة","زيد حلحال","محمد طه عمراني","عدي المكودي","آية المدهون","رضى الحيوتي","أحلام الدراوي","علي الوكيلي","آسية حماني","فاطمة الزهراء بلداني","محمد أمين المسكين","وئام كرعان"]};
+
+const BEHAVIOURS = [
+  {label:"ضجيج وكلام", icon:"🗣️", code:"talking", penalty:0.5, level:"low"},
+  {label:"عدم الانتباه", icon:"😴", code:"distracted", penalty:0.5, level:"low"},
+  {label:"تأخر عن الحصة", icon:"⏰", code:"late", penalty:0.5, level:"low"},
+  {label:"استخدام الهاتف", icon:"📱", code:"phone", penalty:1, level:"low"},
+  {label:"إزعاج الزملاء", icon:"😤", code:"disturbing", penalty:1, level:"low"},
+  {label:"رفض العمل", icon:"🚫", code:"refusal", penalty:1, level:"high"},
+  {label:"كلام غير لائق", icon:"⚡", code:"disrespect", penalty:2, level:"high"},
+  {label:"غش أو نقل", icon:"📋", code:"cheating", penalty:2, level:"high"},
+  {label:"سلوك خطير", icon:"🔴", code:"dangerous", penalty:3, level:"high"},
+];
+
+const classNames = Object.keys(DATA);
+let currentPage = 'overview';
+let currentClass = null;
+let _rows = {};
+
+// Modal state
+let discCtx = null; // {cls, idx}
+let absCtx = null;
+let profileCtx = null;
+let calYear, calMonth;
+let profileForPrint = null;
+
+// ════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════
+const SK = cls => 'gbpro_' + cls;
+const SS = 'gbpro_settings';
+
+function loadCls(cls){ try{ return JSON.parse(localStorage.getItem(SK(cls)))||{}; }catch(e){ return {}; } }
+function saveCls(cls, st){
+  try{
+    localStorage.setItem(SK(cls), JSON.stringify(st));
+    showSaveIndicator();
+  }catch(e){ showSaveError(); }
+  // Queue Google Sheets sync (non-blocking)
+  if(getGsUrl()) showSyncDot('pending');
+}
+function loadSettings(){ try{ return JSON.parse(localStorage.getItem(SS))||{}; }catch(e){ return {}; } }
+function saveSettings(){
+  const s = {
+    hw: +v('w-hw'), part: +v('w-part'), disc: +v('w-disc'),
+    copy: +v('w-copy'), abs: +v('w-abs'), t1: +v('w-t1'),
+    t2: +v('w-t2'), glob: +v('w-glob'),
+    partTarget: +v('partTarget'), termStart: v('termStart'),
+    academicYear: v('academicYear')
+  };
+  try{ localStorage.setItem(SS, JSON.stringify(s)); }catch(e){}
+  refreshAllScores();
+  updateWeights();
+}
+
+function loadSettingsUI(){
+  const s = loadSettings();
+  const set = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
+  set('w-hw', s.hw??8); set('w-part', s.part??8); set('w-disc', s.disc??8);
+  set('w-copy', s.copy??8); set('w-abs', s.abs??8); set('w-t1', s.t1??15);
+  set('w-t2', s.t2??15); set('w-glob', s.glob??30);
+  set('partTarget', s.partTarget??20); set('termStart', s.termStart??'2026-02-18');
+  set('academicYear', s.academicYear??'2025–2026');
+}
+
+function getW(){
+  const s = loadSettings();
+  return {
+    hw: (s.hw??8)/100, part: (s.part??8)/100, disc: (s.disc??8)/100,
+    copy: (s.copy??8)/100, abs: (s.abs??8)/100, t1: (s.t1??15)/100,
+    t2: (s.t2??15)/100, glob: (s.glob??30)/100
+  };
+}
+function getPartTarget(){ const s=loadSettings(); return Math.max(1, s.partTarget??20); }
+
+function updateWeights(){
+  const ids = ['w-hw','w-part','w-disc','w-copy','w-abs','w-t1','w-t2','w-glob'];
+  const total = ids.reduce((a,id)=>a+(+v(id)||0),0);
+  const el = document.getElementById('weightTotal');
+  if(el){
+    el.textContent = 'Total: ' + total + '%' + (total===100?' ✓':' ✗ (must be 100%)');
+    el.className = 'weight-total ' + (total===100?'ok':'bad');
+  }
+}
+
+function getStudentRecord(st, n, defaultName){
+  if(!st.students) st.students = {};
+  if(!st.students[n]) st.students[n] = {
+    name: defaultName||'',
+    scores: {hw:'',copy:'',t1:'',t2:'',glob:''},
+    participationPoints: 0,
+    disciplineIncidents: [],
+    absenceDates: []
+  };
+  return st.students[n];
+}
+
+// ════════════════════════════════════
+// CALCULATIONS
+// ════════════════════════════════════
+function clamp(n,lo,hi){ return Math.max(lo,Math.min(hi,n)); }
+function num(v){ const x=parseFloat(v); return isFinite(x)?x:0; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+const v = id => { const el=document.getElementById(id); return el?el.value:''; };
+
+function partScore(pts){ return clamp((pts/getPartTarget())*20,0,20); }
+function discScore(incs){ return clamp(20-(incs||[]).reduce((a,x)=>a+(x.penalty||0),0),0,20); }
+function absScore(dates){ return clamp(20-0.5*(dates||[]).length,0,20); }
+
+function calcFinal(row){
+  const W = getW();
+  const hw = clamp(num(row.hw.value),0,20);
+  const copy = clamp(num(row.copy.value),0,20);
+  const t1 = clamp(num(row.t1.value),0,20);
+  const t2 = clamp(num(row.t2.value),0,20);
+  const glob = clamp(num(row.glob.value),0,20);
+  return clamp(
+    W.hw*hw + W.copy*copy + W.t1*t1 + W.t2*t2 + W.glob*glob
+    + W.part*partScore(row.partPoints)
+    + W.disc*discScore(row.discIncidents)
+    + W.abs*absScore(row.absDates), 0, 20
+  );
+}
+function gradeClass(v){ return v>=16?'good':v>=10?'mid':'low'; }
+
+// ════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════
+function showPage(pageId, cls){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+
+  if(cls){
+    currentClass = cls;
+    const safeId = 'page-cls-'+cls.replace(/[^a-zA-Z0-9]/g,'_');
+    const pg = document.getElementById(safeId);
+    if(pg) pg.classList.add('active');
+    document.getElementById('nav-cls-'+cls.replace(/[^a-zA-Z0-9]/g,'_'))?.classList.add('active');
+    document.getElementById('topbarTitle').textContent = cls;
+    document.getElementById('topbarMeta').textContent = DATA[cls].length + ' students';
+    renderClassPage(cls);
+  } else {
+    currentPage = pageId;
+    const pg = document.getElementById('page-'+pageId);
+    if(pg) pg.classList.add('active');
+    document.getElementById('nav-'+pageId)?.classList.add('active');
+    if(pageId==='overview'){ document.getElementById('topbarTitle').textContent='Overview'; document.getElementById('topbarMeta').textContent=''; renderOverview(); }
+    if(pageId==='atrisk'){ document.getElementById('topbarTitle').textContent='At-Risk Students'; document.getElementById('topbarMeta').textContent=''; renderAtRisk(); }
+    if(pageId==='settings'){ document.getElementById('topbarTitle').textContent='Grade Weights'; document.getElementById('topbarMeta').textContent=''; }
+  }
+  closeSidebar();
+}
+
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('show'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
+
+// ════════════════════════════════════
+// BUILD SIDEBAR NAV
+// ════════════════════════════════════
+function buildSidebarNav(){
+  const list = document.getElementById('classNavList');
+  list.innerHTML = '';
+  classNames.forEach(cls=>{
+    const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.id = 'nav-cls-'+safe;
+    btn.innerHTML = `<span class="icon">📋</span>${cls}<span class="badge-count">${DATA[cls].length}</span>`;
+    btn.onclick = ()=>showPage(null, cls);
+    list.appendChild(btn);
+  });
+}
+
+// ════════════════════════════════════
+// BUILD CLASS PAGES (containers)
+// ════════════════════════════════════
+function buildClassPageContainers(){
+  const container = document.getElementById('classPages');
+  classNames.forEach(cls=>{
+    const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
+    const div = document.createElement('div');
+    div.className = 'page';
+    div.id = 'page-cls-'+safe;
+    div.innerHTML = `
+      <div class="class-toolbar">
+        <input class="search-box" type="search" placeholder="ابحث عن طالب…" id="srch-${safe}" oninput="filterTable('${cls}',this.value)" style="direction:rtl"/>
+        <button class="tool-btn primary" onclick="openPrintAllReport('${cls}')">🖨️ تقرير الفصل</button>
+        <button class="tool-btn" onclick="exportCSV('${cls}')">📊 CSV</button>
+        <button class="tool-btn danger" onclick="clearClass('${cls}')">🗑️ مسح</button>
+      </div>
+      <div class="stats-row" id="stats-${safe}"></div>
+      <div class="tablewrap" id="wrap-${safe}">
+        <table id="tbl-${safe}">
+          <thead><tr>
+            <th>#</th>
+            <th style="min-width:200px;direction:rtl">الاسم الكامل</th>
+            <th>الغياب</th>
+            <th>المشاركة</th>
+            <th>الانضباط</th>
+            <th>الواجب</th>
+            <th>الدفتر</th>
+            <th>فرض 1</th><th>فرض 2</th><th>الإجمالي</th>
+            <th>النتيجة</th><th></th>
+          </tr></thead>
+          <tbody id="tbody-${safe}"></tbody>
+        </table>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════
+// RENDER CLASS TABLE
+// ════════════════════════════════════
+function renderClassPage(cls){
+  const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
+  const names = DATA[cls]||[];
+  const st = loadCls(cls);
+  const tbody = document.getElementById('tbody-'+safe);
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  if(!_rows[cls]) _rows[cls] = [];
+  _rows[cls] = [];
+
+  names.forEach((defaultName, idx)=>{
+    const n = idx+1;
+    const rec = getStudentRecord(st, n, defaultName);
+    const tr = document.createElement('tr');
+    if(isAtRisk(rec)) tr.classList.add('at-risk');
+
+    const rowObj = {
+      n, cls,
+      nameInp: null,
+      hw: null, copy: null, t1: null, t2: null, glob: null,
+      partPoints: rec.participationPoints||0,
+      discIncidents: (rec.disciplineIncidents||[]).slice(),
+      absDates: (rec.absenceDates||[]).slice(),
+      final: null,
+      partBtn: null, discBadge: null, absTap: null, absCount: null,
+    };
+
+    function persist(){
+      markUnsaved();
+      const s2 = loadCls(cls);
+      const r = getStudentRecord(s2, n, defaultName);
+      r.name = rowObj.nameInp.value;
+      r.scores = { hw: rowObj.hw.value, copy: rowObj.copy.value, t1: rowObj.t1.value, t2: rowObj.t2.value, glob: rowObj.glob.value };
+      r.participationPoints = rowObj.partPoints;
+      r.disciplineIncidents = rowObj.discIncidents;
+      r.absenceDates = rowObj.absDates;
+      saveCls(cls, s2);
+      queueSync(cls, n);
+    }
+
+    function refresh(){
+      const fin = calcFinal(rowObj);
+      rowObj.final.textContent = fin.toFixed(2);
+      rowObj.final.className = 'final-score ' + gradeClass(fin);
+      // participation
+      const pPts = rowObj.partPoints;
+      rowObj.partBtn.innerHTML = `⭐ <b>${pPts}</b>`;
+      // discipline
+      const inc = rowObj.discIncidents.length;
+      const ds = discScore(rowObj.discIncidents);
+      rowObj.discBadge.textContent = inc===0?'🟢 جيد': inc<=2?`🟡 ${inc}`:  `🔴 ${inc}`;
+      rowObj.discBadge.className = 'disc-badge '+(inc===0?'ok':inc<=2?'warn':'danger');
+      // absence
+      const ac = rowObj.absDates.length;
+      rowObj.absCount.textContent = ac>0?ac+'غ':'—';
+      rowObj.absCount.className = 'abs-count '+(ac>0?'has-abs':'');
+      rowObj.absTap.className = 'abs-tap '+(rowObj.absDates.includes(todayISO())?'marked':'');
+      // at-risk
+      tr.classList.toggle('at-risk', isAtRisk({absenceDates:rowObj.absDates, disciplineIncidents:rowObj.discIncidents, _fin:fin}));
+      updateStats(cls);
+    }
+
+    // #
+    const tdNum = document.createElement('td'); tdNum.className='num'; tdNum.textContent=n;
+    // Name
+    const tdName = document.createElement('td'); tdName.className='name-cell';
+    const ni = document.createElement('input');
+    ni.className='name-inp'; ni.type='text'; ni.value=rec.name||''; ni.placeholder='اسم الطالب…';
+    ni.addEventListener('input',()=>persist());
+    rowObj.nameInp = ni;
+    tdName.appendChild(ni);
+
+    // Score inputs
+    function mkScore(key){ 
+      const inp=document.createElement('input'); 
+      inp.className='score-inp'; inp.type='number'; inp.min=0; inp.max=20; inp.step=0.25;
+      inp.value=rec.scores?.[key]??'';
+      inp.addEventListener('input',()=>{ persist(); refresh(); });
+      rowObj[key]=inp;
+      const td=document.createElement('td'); td.appendChild(inp); return td;
+    }
+
+    // Participation
+    const tdPart = document.createElement('td');
+    const partWrap = document.createElement('div'); partWrap.className='part-cell';
+    const partBtn = document.createElement('div'); partBtn.className='part-tap';
+    partBtn.title='Tap to add +1 participation point';
+    partBtn.addEventListener('click',()=>{ rowObj.partPoints++; persist(); refresh(); showToast('⭐ +1 مشاركة'); });
+    const partMinus = document.createElement('div'); partMinus.className='part-minus';
+    partMinus.textContent='−';
+    partMinus.addEventListener('click',()=>{ rowObj.partPoints=Math.max(0,rowObj.partPoints-1); persist(); refresh(); });
+    rowObj.partBtn = partBtn;
+    partWrap.append(partBtn, partMinus);
+    tdPart.appendChild(partWrap);
+
+    // Discipline
+    const tdDisc = document.createElement('td');
+    const discBadge = document.createElement('div'); discBadge.className='disc-badge ok';
+    discBadge.addEventListener('click',()=>openDisc(cls, n));
+    rowObj.discBadge = discBadge;
+    tdDisc.appendChild(discBadge);
+
+    // Absence
+    const tdAbs = document.createElement('td');
+    const absWrap = document.createElement('div'); absWrap.className='abs-cell';
+    const absTap = document.createElement('div'); absTap.className='abs-tap'; absTap.textContent='✗';
+    absTap.title='Mark absent today'; 
+    absTap.addEventListener('click',()=>{
+      const d=todayISO();
+      if(rowObj.absDates.includes(d)) rowObj.absDates=rowObj.absDates.filter(x=>x!==d);
+      else rowObj.absDates=[...rowObj.absDates,d].sort();
+      persist(); refresh();
+    });
+    const absCount = document.createElement('span'); absCount.className='abs-count';
+    absCount.addEventListener('click',()=>openAbs(cls,n));
+    rowObj.absTap=absTap; rowObj.absCount=absCount;
+    absWrap.append(absTap, absCount);
+    tdAbs.appendChild(absWrap);
+
+    // Final
+    const tdFinal = document.createElement('td');
+    const finalSpan = document.createElement('div'); finalSpan.className='final-score mid';
+    rowObj.final = finalSpan;
+    tdFinal.appendChild(finalSpan);
+
+    // Profile btn
+    const tdProf = document.createElement('td');
+    const profBtn = document.createElement('button'); profBtn.className='tool-btn'; profBtn.textContent='👤';
+    profBtn.style.padding='7px 10px'; profBtn.style.fontSize='16px';
+    profBtn.addEventListener('click',()=>openProfile(cls,n));
+    tdProf.appendChild(profBtn);
+
+    tr.append(tdNum, tdName, tdAbs, tdPart, tdDisc, mkScore('hw'), mkScore('copy'), mkScore('t1'), mkScore('t2'), mkScore('glob'), tdFinal, tdProf);
+    tbody.appendChild(tr);
+    refresh();
+    _rows[cls].push({ tr, rowObj, n });
+  });
+
+  saveCls(cls, st);
+  updateStats(cls);
+}
+
+// ════════════════════════════════════
+// STATS BAR
+// ════════════════════════════════════
+function updateStats(cls){
+  const safe = cls.replace(/[^a-zA-Z0-9]/g,'_');
+  const el = document.getElementById('stats-'+safe);
+  if(!el || !_rows[cls]) return;
+  const rows = _rows[cls];
+  const vals = rows.map(r=>parseFloat(r.rowObj.final.textContent)||0);
+  const avg = vals.reduce((a,b)=>a+b,0)/(vals.length||1);
+  const above = vals.filter(v=>v>=10).length;
+  const risky = rows.filter(r=>r.tr.classList.contains('at-risk')).length;
+  el.innerHTML = `
+    <div class="stat-chip gold-chip"><strong>${avg.toFixed(2)}</strong> متوسط الفصل</div>
+    <div class="stat-chip green-chip"><strong>${above}</strong> فوق المعدل</div>
+    <div class="stat-chip red-chip"><strong>${vals.filter(v=>v<10).length}</strong> دون المعدل</div>
+    <div class="stat-chip"><strong>${risky}</strong> في خطر</div>
+    <div class="stat-chip"><strong>${rows.length}</strong> تلميذ</div>`;
+  updateRiskCount();
+}
+
+function isAtRisk(rec){
+  const abs = (rec.absenceDates||[]).length>=5;
+  const disc = (rec.disciplineIncidents||[]).length>=3;
+  const fin = rec._fin!==undefined ? rec._fin<10 : false;
+  return abs||disc||fin;
+}
+
+function refreshAllScores(){
+  classNames.forEach(cls=>{ if(_rows[cls]&&_rows[cls].length) _rows[cls].forEach(r=>{ const fin=calcFinal(r.rowObj); r.rowObj.final.textContent=fin.toFixed(2); r.rowObj.final.className='final-score '+gradeClass(fin); }); });
+  updateRiskCount();
+}
+
+function filterTable(cls, term){
+  if(!_rows[cls]) return;
+  term = term.trim().toLowerCase();
+  _rows[cls].forEach(r=>{
+    const name = r.rowObj.nameInp.value.toLowerCase();
+    r.tr.style.display = (!term||name.includes(term)) ? '' : 'none';
+  });
+  updateStats(cls);
+}
+
+// ════════════════════════════════════
+// OVERVIEW DASHBOARD
+// ════════════════════════════════════
+function renderOverview(){
+  const grid = document.getElementById('dashGrid');
+  grid.innerHTML = '';
+  const today = todayISO();
+  classNames.forEach(cls=>{
+    const st = loadCls(cls);
+    const names = DATA[cls]||[];
+    let totalFin=0, risky=0, totalAbs=0, todayAbs=0;
+    names.forEach((_,idx)=>{
+      const n=idx+1;
+      const rec = getStudentRecord(st, n, names[idx]);
+      const rowMock = {
+        hw:{value:rec.scores?.hw??''}, copy:{value:rec.scores?.copy??''},
+        t1:{value:rec.scores?.t1??''}, t2:{value:rec.scores?.t2??''},
+        glob:{value:rec.scores?.glob??''},
+        partPoints:rec.participationPoints||0,
+        discIncidents:rec.disciplineIncidents||[],
+        absDates:rec.absenceDates||[]
+      };
+      const fin=calcFinal(rowMock);
+      totalFin+=fin;
+      totalAbs+=(rec.absenceDates||[]).length;
+      if((rec.absenceDates||[]).includes(today)) todayAbs++;
+      if(isAtRisk({absenceDates:rec.absenceDates,disciplineIncidents:rec.disciplineIncidents,_fin:fin})) risky++;
+    });
+    const avg = totalFin/(names.length||1);
+    const card = document.createElement('div');
+    card.className='dash-card';
+    const riskClass = risky===0?'ok':risky<=3?'warn':'danger';
+    const todayAbsColor = todayAbs===0?'good':todayAbs<=3?'mid':'bad';
+    card.innerHTML=`
+      <div class="cls-name" style="cursor:pointer" onclick="showPage(null,'${cls}')">${cls}</div>
+      <div class="cls-count">${names.length} طالباً</div>
+      <div class="dash-stat"><span class="lbl">المتوسط</span><span class="val ${gradeClass(avg)}">${avg.toFixed(2)}</span></div>
+      <div class="dash-stat"><span class="lbl">غياب اليوم</span><span class="val ${todayAbsColor}">${todayAbs}</span></div>
+      <div class="dash-stat"><span class="lbl">في خطر</span><span class="val ${risky>0?'bad':'good'}">${risky}</span></div>
+      <span class="risk-pill ${riskClass}" style="margin-bottom:10px">${risky===0?'✓ وضع جيد':risky+' طالب في خطر'}</span>
+      <button class="abs-report-btn ${todayAbs>0?'has-absent':''}" onclick="openAbsReport('${cls}')">
+        📋 ${todayAbs>0 ? `تقرير الغياب · <b>${todayAbs}</b> غائب` : 'لا غياب اليوم'}
+      </button>`;
+    grid.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════
+// AT-RISK PAGE
+// ════════════════════════════════════
+function renderAtRisk(){
+  const list = document.getElementById('riskList');
+  list.innerHTML='';
+  let count=0;
+  classNames.forEach(cls=>{
+    const st=loadCls(cls);
+    const names=DATA[cls]||[];
+    names.forEach((_,idx)=>{
+      const n=idx+1;
+      const rec=getStudentRecord(st,n,names[idx]);
+      const rowMock={hw:{value:rec.scores?.hw??''},copy:{value:rec.scores?.copy??''},t1:{value:rec.scores?.t1??''},t2:{value:rec.scores?.t2??''},glob:{value:rec.scores?.glob??''},partPoints:rec.participationPoints||0,discIncidents:rec.disciplineIncidents||[],absDates:rec.absenceDates||[]};
+      const fin=calcFinal(rowMock);
+      const abs=(rec.absenceDates||[]).length;
+      const disc=(rec.disciplineIncidents||[]).length;
+      if(!isAtRisk({absenceDates:rec.absenceDates,disciplineIncidents:rec.disciplineIncidents,_fin:fin})) return;
+      count++;
+      const tags=[];
+      if(fin<10) tags.push(`<span class="risk-tag grade">📉 ${fin.toFixed(2)}/20</span>`);
+      if(abs>=5) tags.push(`<span class="risk-tag abs">📅 ${abs} غياب</span>`);
+      if(disc>=3) tags.push(`<span class="risk-tag disc">⚠️ ${disc} إنذار</span>`);
+      const card=document.createElement('div');
+      card.className='risk-card';
+      card.onclick=()=>openProfile(cls,n);
+      card.innerHTML=`<div class="risk-num">#${n}</div><div><div class="risk-name">${rec.name||names[idx]}</div><div class="risk-cls">${cls}</div><div class="risk-tags">${tags.join('')}</div></div>`;
+      list.appendChild(card);
+    });
+  });
+  if(!count) list.innerHTML='<div class="empty-state"><div class="big-icon">✅</div><p>لا يوجد طلاب في وضع خطر.<br/>أحسنت!</p></div>';
+  updateRiskCount();
+}
+
+function updateRiskCount(){
+  let count=0;
+  classNames.forEach(cls=>{
+    const st=loadCls(cls);
+    (DATA[cls]||[]).forEach((_,idx)=>{
+      const rec=getStudentRecord(st,idx+1,DATA[cls][idx]);
+      const rm={hw:{value:rec.scores?.hw??''},copy:{value:rec.scores?.copy??''},t1:{value:rec.scores?.t1??''},t2:{value:rec.scores?.t2??''},glob:{value:rec.scores?.glob??''},partPoints:rec.participationPoints||0,discIncidents:rec.disciplineIncidents||[],absDates:rec.absenceDates||[]};
+      if(isAtRisk({absenceDates:rec.absenceDates,disciplineIncidents:rec.disciplineIncidents,_fin:calcFinal(rm)})) count++;
+    });
+  });
+  const el=document.getElementById('riskCount');
+  if(el) el.textContent=count;
+}
+
+// ════════════════════════════════════
+// DISCIPLINE MODAL
+// ════════════════════════════════════
+function openDisc(cls, n){
+  discCtx={cls,n};
+  const st=loadCls(cls);
+  const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  document.getElementById('discModalName').textContent=rec.name||DATA[cls][n-1];
+  document.getElementById('discModalMeta').textContent=`#${n} · ${cls}`;
+  renderDiscCats(); renderIncLog(rec.disciplineIncidents||[]);
+  document.getElementById('discOverlay').classList.add('show');
+}
+function closeDisc(){ document.getElementById('discOverlay').classList.remove('show'); discCtx=null; }
+
+function renderDiscCats(){
+  const wrap=document.getElementById('incCats');
+  wrap.innerHTML='';
+  BEHAVIOURS.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className='cat-btn '+(b.level==='high'?'high-cat':'low-cat');
+    btn.innerHTML=`<span class="cat-icon">${b.icon}</span>${b.label}<br/><small style="color:var(--muted);font-size:10px">−${b.penalty} نقطة</small>`;
+    btn.onclick=()=>addInc(b);
+    wrap.appendChild(btn);
+  });
+}
+
+function addInc(b){
+  if(!discCtx) return;
+  const {cls,n}=discCtx;
+  const st=loadCls(cls); const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  rec.disciplineIncidents=[...(rec.disciplineIncidents||[]),{date:todayISO(),code:b.code,label:b.label,penalty:b.penalty}];
+  saveCls(cls,st);
+  queueSync(cls,n);
+  syncRowFromStorage(cls,n);
+  renderIncLog(rec.disciplineIncidents);
+  showToast('⚠️ تم تسجيل: '+b.label);
+}
+
+function removeInc(idx){
+  if(!discCtx) return;
+  const {cls,n}=discCtx;
+  const st=loadCls(cls); const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  rec.disciplineIncidents=(rec.disciplineIncidents||[]).filter((_,i)=>i!==idx);
+  saveCls(cls,st);
+  queueSync(cls,n);
+  syncRowFromStorage(cls,n);
+  renderIncLog(rec.disciplineIncidents);
+}
+
+function renderIncLog(incs){
+  const wrap=document.getElementById('incLog');
+  if(!incs||!incs.length){ wrap.innerHTML='<p style="color:var(--muted);font-size:13px;text-align:right">لا توجد ملاحظات مسجلة.</p>'; return; }
+  wrap.innerHTML='';
+  incs.forEach((x,i)=>{
+    const div=document.createElement('div'); div.className='inc-item';
+    div.innerHTML=`<div class="inc-info"><div class="inc-label">${x.label}</div><div class="inc-meta">${x.date} · −${x.penalty} نقطة</div></div><button class="rm-btn" onclick="removeInc(${i})">حذف</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════
+// ABSENCE CALENDAR
+// ════════════════════════════════════
+function openAbs(cls,n){
+  absCtx={cls,n};
+  const st=loadCls(cls); const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  document.getElementById('absModalName').textContent=rec.name||DATA[cls][n-1];
+  document.getElementById('absModalMeta').textContent=`#${n} · ${cls} · ${rec.absenceDates?.length||0} يوم غياب`;
+  const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
+  renderCal(); document.getElementById('absOverlay').classList.add('show');
+}
+function closeAbs(){ document.getElementById('absOverlay').classList.remove('show'); absCtx=null; }
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCal(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCal(); }
+
+function renderCal(){
+  if(!absCtx) return;
+  const {cls,n}=absCtx;
+  const st=loadCls(cls); const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  const absSet=new Set(rec.absenceDates||[]);
+  const months=['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'];
+  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear;
+  const grid=document.getElementById('calGrid');
+  grid.innerHTML='';
+  const days=['الإث','الثل','الأر','الخم','الجم','السب','الأح'];
+  days.forEach(d=>{ const h=document.createElement('div'); h.className='cal-day-lbl'; h.textContent=d; grid.appendChild(h); });
+  const first=new Date(calYear,calMonth,1);
+  const startDow=(first.getDay()+6)%7;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  for(let i=0;i<startDow;i++){ const c=document.createElement('div'); c.className='cal-cell empty'; grid.appendChild(c); }
+  const today=todayISO();
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=new Date(calYear,calMonth,d).toISOString().slice(0,10);
+    const c=document.createElement('div'); c.className='cal-cell';
+    c.textContent=d;
+    if(absSet.has(iso)) c.classList.add('absent');
+    if(iso===today) c.classList.add('today');
+    c.addEventListener('click',()=>{
+      const s2=loadCls(cls); const r=getStudentRecord(s2,n,DATA[cls][n-1]);
+      const a=r.absenceDates||[];
+      r.absenceDates=a.includes(iso)?a.filter(x=>x!==iso):[...a,iso].sort();
+      saveCls(cls,s2);
+      queueSync(cls,n);
+      syncRowFromStorage(cls,n);
+      renderCal();
+      document.getElementById('absModalMeta').textContent=`#${n} · ${cls} · ${r.absenceDates.length} يوم غياب`;
+    });
+    grid.appendChild(c);
+  }
+  const sorted=(rec.absenceDates||[]).slice().sort();
+  document.getElementById('absDatesList').textContent=sorted.length?'أيام الغياب: '+sorted.join(' • '):'لا يوجد غياب مسجل.';
+}
+
+// ════════════════════════════════════
+// SYNC ROW FROM STORAGE
+// ════════════════════════════════════
+function syncRowFromStorage(cls,n){
+  const rows=_rows[cls];
+  if(!rows) return;
+  const entry=rows.find(r=>r.n===n);
+  if(!entry) return;
+  const st=loadCls(cls);
+  const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  const ro=entry.rowObj;
+  ro.partPoints=rec.participationPoints||0;
+  ro.discIncidents=(rec.disciplineIncidents||[]).slice();
+  ro.absDates=(rec.absenceDates||[]).slice();
+  const fin=calcFinal(ro);
+  ro.final.textContent=fin.toFixed(2);
+  ro.final.className='final-score '+gradeClass(fin);
+  ro.partBtn.innerHTML=`⭐ <b>${ro.partPoints}</b>`;
+  const inc=ro.discIncidents.length;
+  ro.discBadge.textContent=inc===0?'🟢 جيد':inc<=2?`🟡 ${inc}`:`🔴 ${inc}`;
+  ro.discBadge.className='disc-badge '+(inc===0?'ok':inc<=2?'warn':'danger');
+  const ac=ro.absDates.length;
+  ro.absCount.textContent=ac>0?ac+'غ':'—';
+  ro.absCount.className='abs-count '+(ac>0?'has-abs':'');
+  ro.absTap.className='abs-tap '+(ro.absDates.includes(todayISO())?'marked':'');
+  entry.tr.classList.toggle('at-risk',isAtRisk({absenceDates:ro.absDates,disciplineIncidents:ro.discIncidents,_fin:fin}));
+  updateStats(cls);
+}
+
+// ════════════════════════════════════
+// STUDENT PROFILE MODAL
+// ════════════════════════════════════
+function openProfile(cls,n){
+  profileCtx={cls,n};
+  const st=loadCls(cls); const rec=getStudentRecord(st,n,DATA[cls][n-1]);
+  const name=rec.name||DATA[cls][n-1];
+  document.getElementById('profileName').textContent=name;
+  document.getElementById('profileMeta').textContent=`#${n} · ${cls}`;
+  // compute scores
+  const ro=_rows[cls]?.find(r=>r.n===n)?.rowObj;
+  const hw=ro?num(ro.hw.value):num(rec.scores?.hw);
+  const copy=ro?num(ro.copy.value):num(rec.scores?.copy);
+  const t1=ro?num(ro.t1.value):num(rec.scores?.t1);
+  const t2=ro?num(ro.t2.value):num(rec.scores?.t2);
+  const glob=ro?num(ro.glob.value):num(rec.scores?.glob);
+  const pPts=ro?ro.partPoints:rec.participationPoints||0;
+  const incs=ro?ro.discIncidents:rec.disciplineIncidents||[];
+  const absDates=ro?ro.absDates:rec.absenceDates||[];
+  const pS=partScore(pPts), dS=discScore(incs), aS=absScore(absDates);
+  const rowMock={hw:{value:hw},copy:{value:copy},t1:{value:t1},t2:{value:t2},glob:{value:glob},partPoints:pPts,discIncidents:incs,absDates:absDates};
+  const fin=calcFinal(rowMock);
+  profileForPrint={cls,n,name,hw,copy,t1,t2,glob,pPts,pS,dS,aS,incs,absDates,fin};
+  const body=document.getElementById('profileBody');
+  body.innerHTML=`
+    <div class="profile-final">
+      <div class="big ${gradeClass(fin)}">${fin.toFixed(2)}<span class="out20">/20</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">النتيجة النهائية</div>
+    </div>
+    <div class="profile-grid">
+      <div class="profile-card">
+        <h4>درجات التقييم المستمر</h4>
+        <div class="profile-row"><span class="lbl">الواجبات</span><span class="val">${hw||'—'}/20</span></div>
+        <div class="profile-row"><span class="lbl">الدفتر</span><span class="val">${copy||'—'}/20</span></div>
+        <div class="profile-row"><span class="lbl">المشاركة</span><span class="val">${pPts} نقطة → ${pS.toFixed(1)}/20</span></div>
+        <div class="profile-row"><span class="lbl">الانضباط</span><span class="val">${dS.toFixed(1)}/20 (${incs.length} ح.)</span></div>
+        <div class="profile-row"><span class="lbl">الغياب</span><span class="val">${absDates.length} يوم → ${aS.toFixed(1)}/20</span></div>
+      </div>
+      <div class="profile-card">
+        <h4>نتائج الفروض</h4>
+        <div class="profile-row"><span class="lbl">الفرض الأول</span><span class="val">${t1||'—'}/20</span></div>
+        <div class="profile-row"><span class="lbl">الفرض الثاني</span><span class="val">${t2||'—'}/20</span></div>
+        <div class="profile-row"><span class="lbl">الإجمالي</span><span class="val">${glob||'—'}/20</span></div>
+        <div class="profile-row"><span class="lbl">الفصل الدراسي</span><span class="val" style="color:var(--gold2)">${cls}</span></div>
+      </div>
+    </div>
+    ${incs.length?`<div class="profile-card"><h4 style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;direction:rtl">الملاحظات السلوكية</h4><div class="rpt-incidents" style="color:var(--muted2);direction:rtl">${incs.map(x=>`${x.date}: ${x.label}`).join('<br/>')}</div></div>`:''}`;
+  document.getElementById('profileOverlay').classList.add('show');
+}
+function closeProfile(){ document.getElementById('profileOverlay').classList.remove('show'); profileCtx=null; profileForPrint=null; }
+
+// ════════════════════════════════════
+// ARABIC REPORT PRINT
+// ════════════════════════════════════
+function printArabicReport(){
+  if(!profileForPrint) return;
+  const {cls,n,name,hw,copy,t1,t2,glob,pPts,pS,dS,aS,incs,absDates,fin} = profileForPrint;
+  const s=loadSettings();
+  const year=s.academicYear||'2025–2026';
+  const today=todayISO();
+  const incHTML=incs.length
+    ? incs.map(x=>`<tr><td>${x.date}</td><td>${x.label}</td><td style="color:#c0392b">−${x.penalty}</td></tr>`).join('')
+    : '<tr><td colspan="3" style="color:#999;text-align:center">لا توجد ملاحظات</td></tr>';
+  const absHTML=absDates.length?absDates.join(' • '):'لا يوجد غياب مسجل';
+  const w=getW();
+  const grade=fin>=16?'ممتاز':fin>=14?'جيد جداً':fin>=12?'جيد':fin>=10?'مقبول':'ضعيف';
+  const winHTML=`<!DOCTYPE html><html dir="rtl" lang="ar">
+<head><meta charset="utf-8"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<title>تقرير الطالب</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Sans Arabic',sans-serif;background:#f4f4f4;padding:20px;direction:rtl}
+  .page{max-width:780px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+  .header{background:linear-gradient(135deg,#1a2d5a,#2d4a8f);color:#fff;padding:24px 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .header h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .header .sub{font-size:12px;opacity:.8}
+  .header .school{text-align:left;font-size:12px;opacity:.85;line-height:1.6}
+  .gold-bar{height:5px;background:linear-gradient(90deg,#c9a84c,#e8c870,#c9a84c)}
+  .body{padding:24px 30px}
+  .student-banner{background:linear-gradient(135deg,#f8f4e8,#fff9ef);border:2px solid #c9a84c;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .student-name{font-size:20px;font-weight:700;color:#1a2d5a}
+  .student-meta{font-size:13px;color:#666;margin-top:3px}
+  .final-box{text-align:center;background:#1a2d5a;color:#fff;border-radius:10px;padding:12px 20px;min-width:120px}
+  .final-num{font-size:32px;font-weight:700;line-height:1}
+  .final-grade{font-size:13px;opacity:.85;margin-top:4px}
+  .final-box.good{background:#27ae60}
+  .final-box.mid{background:#e67e22}
+  .final-box.low{background:#c0392b}
+  section{margin-bottom:18px}
+  section h2{font-size:14px;font-weight:700;color:#1a2d5a;border-bottom:2px solid #c9a84c;padding-bottom:6px;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#1a2d5a;color:#fff;padding:9px 12px;text-align:right;font-weight:600;font-size:12px}
+  td{padding:8px 12px;border-bottom:1px solid #eee;vertical-align:middle}
+  tr:nth-child(even) td{background:#fafafe}
+  .score{font-weight:700;color:#1a2d5a}
+  .score.ok{color:#27ae60}
+  .score.warn{color:#e67e22}
+  .score.bad{color:#c0392b}
+  .note-box{background:#fff9e6;border:1px solid #f0c040;border-radius:8px;padding:12px 16px;font-size:12px;color:#555;line-height:1.7}
+  .sigs{display:flex;justify-content:space-between;margin-top:24px;gap:20px;flex-wrap:wrap}
+  .sig{text-align:center;min-width:180px}
+  .sig-title{font-size:12px;color:#666;margin-bottom:28px}
+  .sig-line{border-top:1px solid #999;width:180px;margin:0 auto;padding-top:4px;font-size:11px;color:#999}
+  .footer{background:#f0f0f0;padding:10px 20px;text-align:center;font-size:11px;color:#888;margin-top:4px}
+  @media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0}}
+</style>
+</head>
+<body><div class="page">
+  <div class="header">
+    <div>
+      <h1>التقرير البيداغوجي للتلميذ</h1>
+      <div class="sub">السنة الدراسية ${year} · تاريخ الإصدار: ${today}</div>
+    </div>
+    <div class="school">
+      ثانوية عبد الله كنون التأهيلية<br/>
+      سايس – فاس<br/>
+      مادة: اللغة الإنجليزية
+    </div>
+  </div>
+  <div class="gold-bar"></div>
+  <div class="body">
+    <div class="student-banner">
+      <div>
+        <div class="student-name">${name}</div>
+        <div class="student-meta">الرقم: ${n} · القسم: ${cls}</div>
+      </div>
+      <div class="final-box ${gradeClass(fin)}">
+        <div class="final-num">${fin.toFixed(2)}</div>
+        <div class="final-grade">${grade}</div>
+      </div>
+    </div>
+
+    <section>
+      <h2>📊 نتائج الفروض والاختبارات</h2>
+      <table>
+        <thead><tr><th>العنصر</th><th>الدرجة من 20</th><th>المعامل</th></tr></thead>
+        <tbody>
+          <tr><td>الفرض الأول</td><td class="score ${t1>=10?'ok':'bad'}">${t1||'—'}</td><td>${Math.round(w.t1*100)}%</td></tr>
+          <tr><td>الفرض الثاني</td><td class="score ${t2>=10?'ok':'bad'}">${t2||'—'}</td><td>${Math.round(w.t2*100)}%</td></tr>
+          <tr><td>الإجمالي</td><td class="score ${glob>=10?'ok':'bad'}">${glob||'—'}</td><td>${Math.round(w.glob*100)}%</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>📝 التقييم المستمر</h2>
+      <table>
+        <thead><tr><th>العنصر</th><th>الدرجة / النقاط</th><th>التحويل /20</th><th>المعامل</th></tr></thead>
+        <tbody>
+          <tr><td>الواجبات المنزلية</td><td>${hw||'—'}</td><td class="score ${hw>=10?'ok':'bad'}">${hw||'—'}</td><td>${Math.round(w.hw*100)}%</td></tr>
+          <tr><td>دفتر الدروس</td><td>${copy||'—'}</td><td class="score ${copy>=10?'ok':'bad'}">${copy||'—'}</td><td>${Math.round(w.copy*100)}%</td></tr>
+          <tr><td>المشاركة الصفية</td><td>${pPts} نقطة</td><td class="score ${pS>=10?'ok':'bad'}">${pS.toFixed(2)}</td><td>${Math.round(w.part*100)}%</td></tr>
+          <tr><td>الانضباط والسلوك</td><td>${incs.length} ملاحظة</td><td class="score ${dS>=16?'ok':dS>=10?'warn':'bad'}">${dS.toFixed(2)}</td><td>${Math.round(w.disc*100)}%</td></tr>
+          <tr><td>الغياب</td><td>${absDates.length} يوم</td><td class="score ${aS>=16?'ok':aS>=10?'warn':'bad'}">${aS.toFixed(2)}</td><td>${Math.round(w.abs*100)}%</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    ${incs.length?`<section>
+      <h2>⚠️ الملاحظات السلوكية</h2>
+      <table>
+        <thead><tr><th>التاريخ</th><th>نوع المخالفة</th><th>الخصم</th></tr></thead>
+        <tbody>${incHTML}</tbody>
+      </table>
+    </section>`:''}
+
+    <section>
+      <h2>📅 سجل الغياب</h2>
+      <div class="note-box">${absHTML}</div>
+    </section>
+
+    <section>
+      <h2>💬 توصيات الأستاذ</h2>
+      <div class="note-box" style="min-height:60px">
+        ${fin>=16?'أداء ممتاز، استمر في هذا المستوى الرائع.':fin>=12?'مستوى جيد، بذل مجهود إضافي في الفروض سيحسن النتيجة.':fin>=10?'النتيجة مقبولة، لكن تحتاج إلى مزيد من العمل والمثابرة.':'النتيجة دون المعدل، يلزم تدارك الوضع بالعمل الجدي والانتظام.'}
+      </div>
+    </section>
+
+    <div class="sigs">
+      <div class="sig"><div class="sig-title">توقيع الأستاذ</div><div class="sig-line"></div></div>
+      <div class="sig"><div class="sig-title">توقيع ولي الأمر</div><div class="sig-line"></div></div>
+      <div class="sig"><div class="sig-title">توقيع الإدارة</div><div class="sig-line"></div></div>
+    </div>
+  </div>
+  <div class="footer">وثيقة رسمية صادرة عن ثانوية عبد الله كنون التأهيلية · ${today}</div>
+</div>
+<script>window.onload=()=>window.print();<\/script>
+</body></html>`;
+  const w2=window.open('','_blank');
+  if(w2){ w2.document.write(winHTML); w2.document.close(); }
+}
+
+// ════════════════════════════════════
+// CLASS REPORT PRINT
+// ════════════════════════════════════
+function openPrintAllReport(cls){
+  const st=loadCls(cls); const names=DATA[cls]||[];
+  const s=loadSettings(); const year=s.academicYear||'2025–2026'; const today=todayISO();
+  const rows=names.map((_,idx)=>{
+    const n=idx+1; const rec=getStudentRecord(st,n,names[idx]);
+    const ro=_rows[cls]?.find(r=>r.n===n)?.rowObj;
+    const hw=ro?num(ro.hw.value):num(rec.scores?.hw);
+    const t1=ro?num(ro.t1.value):num(rec.scores?.t1);
+    const t2=ro?num(ro.t2.value):num(rec.scores?.t2);
+    const glob=ro?num(ro.glob.value):num(rec.scores?.glob);
+    const pPts=ro?ro.partPoints:rec.participationPoints||0;
+    const incs=ro?ro.discIncidents:rec.disciplineIncidents||[];
+    const abs=ro?ro.absDates:rec.absenceDates||[];
+    const rowMock={hw:{value:hw},copy:{value:ro?num(ro.copy.value):num(rec.scores?.copy)},t1:{value:t1},t2:{value:t2},glob:{value:glob},partPoints:pPts,discIncidents:incs,absDates:abs};
+    const fin=calcFinal(rowMock);
+    return {n,name:rec.name||names[idx],t1,t2,glob,pPts,incs:incs.length,abs:abs.length,fin};
+  });
+  const trs=rows.map(r=>`<tr><td>${r.n}</td><td style="font-weight:600">${r.name}</td><td>${r.t1||'—'}</td><td>${r.t2||'—'}</td><td>${r.glob||'—'}</td><td>${r.pPts}</td><td style="color:${r.incs>2?'#c0392b':r.incs>0?'#e67e22':'#27ae60'}">${r.incs}</td><td style="color:${r.abs>=5?'#c0392b':r.abs>0?'#e67e22':'#27ae60'}">${r.abs}</td><td style="font-weight:700;color:${r.fin>=16?'#27ae60':r.fin>=10?'#e67e22':'#c0392b'}">${r.fin.toFixed(2)}</td></tr>`).join('');
+  const avg=rows.reduce((a,r)=>a+r.fin,0)/(rows.length||1);
+  const winHTML=`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"/>
+<title>تقرير القسم</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'IBM Plex Sans Arabic',sans-serif;background:#f4f4f4;padding:20px;direction:rtl}.page{max-width:960px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}.header{background:linear-gradient(135deg,#1a2d5a,#2d4a8f);color:#fff;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.header h1{font-size:18px;font-weight:700;margin-bottom:4px}.header .sub{font-size:12px;opacity:.8}.gold-bar{height:4px;background:linear-gradient(90deg,#c9a84c,#e8c870,#c9a84c)}.body{padding:20px 28px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#1a2d5a;color:#fff;padding:9px 10px;text-align:right;font-size:11px;font-weight:600}td{padding:8px 10px;border-bottom:1px solid #eee}tr:nth-child(even) td{background:#fafafe}.footer{background:#f0f0f0;padding:10px 20px;text-align:center;font-size:11px;color:#888}.avg-box{display:inline-block;background:#1a2d5a;color:#fff;border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:14px;font-weight:700}@media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0}}</style>
+</head><body><div class="page">
+<div class="header"><div><h1>تقرير القسم · ${cls}</h1><div class="sub">السنة الدراسية ${year} · تاريخ: ${today} · ${rows.length} تلميذاً</div></div><div style="font-size:12px;opacity:.85;text-align:left">ثانوية عبد الله كنون التأهيلية<br/>مادة: اللغة الإنجليزية</div></div>
+<div class="gold-bar"></div>
+<div class="body">
+<div class="avg-box">متوسط القسم: ${avg.toFixed(2)} / 20</div>
+<table><thead><tr><th>#</th><th>الاسم الكامل</th><th>ف1</th><th>ف2</th><th>إجمالي</th><th>مشاركة</th><th>إنذارات</th><th>غياب</th><th>النتيجة</th></tr></thead>
+<tbody>${trs}</tbody></table>
+<div style="margin-top:20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px">
+<div style="text-align:center;min-width:180px"><div style="font-size:12px;color:#666;margin-bottom:24px">توقيع الأستاذ</div><div style="border-top:1px solid #999;width:180px;margin:0 auto;padding-top:4px;font-size:11px;color:#999"></div></div>
+<div style="text-align:center;min-width:180px"><div style="font-size:12px;color:#666;margin-bottom:24px">توقيع الإدارة</div><div style="border-top:1px solid #999;width:180px;margin:0 auto;padding-top:4px;font-size:11px;color:#999"></div></div>
+</div></div>
+<div class="footer">وثيقة رسمية صادرة عن ثانوية عبد الله كنون التأهيلية · ${today}</div>
+</div><script>window.onload=()=>window.print();<\/script></body></html>`;
+  const w=window.open('','_blank');
+  if(w){ w.document.write(winHTML); w.document.close(); }
+}
+
+// ════════════════════════════════════
+// BACKUP & RESTORE
+// ════════════════════════════════════
+function backupData(){
+  const data={};
+  classNames.forEach(cls=>{ data[cls]=loadCls(cls); });
+  data._settings=loadSettings();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='gradebook_backup_'+todayISO()+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('💾 تم تحميل النسخة الاحتياطية');
+}
+
+function restoreData(e){
+  const file=e.target.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      classNames.forEach(cls=>{ if(data[cls]) saveCls(cls,data[cls]); });
+      if(data._settings) localStorage.setItem(SS,JSON.stringify(data._settings));
+      loadSettingsUI(); updateWeights();
+      showToast('✅ تم استعادة البيانات بنجاح');
+      renderOverview();
+    }catch(err){ showToast('❌ خطأ في ملف النسخة الاحتياطية'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// ════════════════════════════════════
+// CSV EXPORT
+// ════════════════════════════════════
+function exportCSV(cls){
+  const st=loadCls(cls); const names=DATA[cls]||[];
+  const headers=['القسم','#','الاسم','ف1','ف2','الإجمالي','الواجب','الدفتر','نقاط المشاركة','درجة المشاركة','درجة الانضباط','أيام الغياب','درجة الغياب','النتيجة النهائية'];
+  const lines=[headers.join(',')];
+  names.forEach((_,idx)=>{
+    const n=idx+1; const rec=getStudentRecord(st,n,names[idx]);
+    const ro=_rows[cls]?.find(r=>r.n===n)?.rowObj;
+    const hw=ro?num(ro.hw.value):num(rec.scores?.hw);
+    const copy=ro?num(ro.copy.value):num(rec.scores?.copy);
+    const t1=ro?num(ro.t1.value):num(rec.scores?.t1);
+    const t2=ro?num(ro.t2.value):num(rec.scores?.t2);
+    const glob=ro?num(ro.glob.value):num(rec.scores?.glob);
+    const pPts=ro?ro.partPoints:rec.participationPoints||0;
+    const incs=ro?ro.discIncidents:rec.disciplineIncidents||[];
+    const abs=ro?ro.absDates:rec.absenceDates||[];
+    const rm={hw:{value:hw},copy:{value:copy},t1:{value:t1},t2:{value:t2},glob:{value:glob},partPoints:pPts,discIncidents:incs,absDates:abs};
+    lines.push([cls,n,`"${(rec.name||names[idx]).replace(/"/g,'""')}"`,t1,t2,glob,hw,copy,pPts,partScore(pPts).toFixed(2),discScore(incs).toFixed(2),abs.length,absScore(abs).toFixed(2),calcFinal(rm).toFixed(2)].join(','));
+  });
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=cls+'_grades.csv';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  showToast('📊 تم تصدير '+cls);
+}
+
+function clearClass(cls){
+  if(!confirm('مسح جميع بيانات '+cls+'؟')) return;
+  localStorage.removeItem(SK(cls));
+  if(_rows[cls]) _rows[cls]=[];
+  renderClassPage(cls);
+  showToast('🗑️ تم مسح بيانات '+cls);
+}
+
+// ════════════════════════════════════
+// PROJECTOR MODE
+// ════════════════════════════════════
+function toggleProjector(){
+  document.body.classList.toggle('proj');
+  const on=document.body.classList.contains('proj');
+  document.getElementById('projBtn').classList.toggle('lit',on);
+}
+
+// ════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════
+function closeIfBg(e,id){ if(e.target.id===id) document.getElementById(id).classList.remove('show'); }
+
+let _toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// Projector mode CSS
+const projStyle=document.createElement('style');
+projStyle.textContent=`
+body.proj{--bg:#f8f9ff;--bg2:#f0f4ff;--panel:#fff;--card:#fff;--border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);--text:#0d1527;--muted:#5a6a8a;--muted2:#334466;--gold:#7a5a00;--gold2:#5a4200;}
+body.proj .sidebar{background:#f0f4ff;border-color:#ccd;}
+body.proj .topbar{background:rgba(248,249,255,.96);}
+body.proj thead th{background:#1a2d5a;color:#e8eeff;border-bottom-color:rgba(201,168,76,.5);}
+body.proj tbody tr:nth-child(odd) td{background:#f9faff !important;}
+body.proj tbody tr:nth-child(even) td{background:#f2f4fc !important;}
+body.proj tbody tr:hover td{background:#e8eeff !important;}
+body.proj tbody tr.at-risk td{background:rgba(244,63,94,.06) !important;}
+body.proj .name-inp{color:#0d1527;}
+body.proj .score-inp{background:#fff;color:#0d1527;border-color:#c0cce0;}
+body.proj .final-score.good{color:#166534;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3);}
+body.proj .final-score.mid{color:#92400e;background:rgba(251,191,36,.18);border-color:rgba(251,191,36,.3);}
+body.proj .final-score.low{color:#9f1239;background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.25);}
+body.proj td{border-right-color:rgba(0,0,0,.05);}
+body.proj td.name-cell{border-right-color:rgba(61,127,255,.25) !important;}
+`;
+document.head.appendChild(projStyle);
+
+// ════════════════════════════════════
+// DAILY ABSENCE REPORT
+// ════════════════════════════════════
+let _absReportCls = null;
+let _absReportText = '';
+
+function openAbsReport(cls){
+  _absReportCls = cls;
+  const st = loadCls(cls);
+  const names = DATA[cls]||[];
+  const today = todayISO();
+  const now = new Date();
+  const hhmm = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const s = loadSettings();
+  const year = s.academicYear||'2025–2026';
+
+  // Collect absent students
+  const absent = [];
+  names.forEach((_,idx)=>{
+    const n = idx+1;
+    const rec = getStudentRecord(st, n, names[idx]);
+    if((rec.absenceDates||[]).includes(today)){
+      absent.push({ n, name: rec.name||names[idx] });
+    }
+  });
+
+  document.getElementById('absReportTitle').textContent = `تقرير الغياب · ${cls}`;
+  document.getElementById('absReportSub').textContent = `${today} · ${hhmm} · ${absent.length} غائب`;
+
+  const body = document.getElementById('absReportBody');
+
+  if(absent.length === 0){
+    body.innerHTML = `
+      <div style="text-align:center;padding:32px 20px;direction:rtl">
+        <div style="font-size:48px;margin-bottom:12px">✅</div>
+        <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:6px">لا يوجد غياب اليوم</div>
+        <div style="font-size:13px;color:var(--muted)">جميع الطلاب حاضرون</div>
+      </div>`;
+    document.getElementById('absReportCopyBtn').style.display='none';
+    _absReportText = '';
+  } else {
+    // Build the report card
+    const rows = absent.map(a=>
+      `<div class="abs-report-row">
+        <span class="abs-report-num">${a.n}</span>
+        <span class="abs-report-name">${a.name}</span>
+      </div>`
+    ).join('');
+
+    // Build plain text for copy/share
+    _absReportText =
+      `تقرير الغياب\n` +
+      `القسم: ${cls}\n` +
+      `التاريخ: ${today}   الساعة: ${hhmm}\n` +
+      `السنة الدراسية: ${year}\n` +
+      `ثانوية عبد الله كنون التأهيلية\n` +
+      `─────────────────\n` +
+      `عدد الغائبين: ${absent.length}\n\n` +
+      absent.map(a=>`${a.n}. ${a.name}`).join('\n') +
+      `\n─────────────────\n` +
+      `الأستاذ: صلاح الدين`;
+
+    body.innerHTML = `
+      <div class="abs-report-card">
+        <div class="abs-report-header">
+          <div style="direction:rtl">
+            <div style="font-size:11px;opacity:.8;margin-bottom:4px">ثانوية عبد الله كنون التأهيلية</div>
+            <div style="font-size:15px;font-weight:700">القسم: ${cls}</div>
+            <div style="font-size:12px;margin-top:3px;opacity:.8">${today} · ${hhmm}</div>
+          </div>
+          <div class="abs-count-badge">${absent.length}<div style="font-size:11px;font-weight:600;opacity:.85">غائب</div></div>
+        </div>
+        <div class="abs-report-rows">${rows}</div>
+      </div>`;
+    document.getElementById('absReportCopyBtn').style.display='';
+  }
+  document.getElementById('absReportOverlay').classList.add('show');
+  addSwipeToClose(document.getElementById('absReportSheet'), closeAbsReport);
+}
+
+function closeAbsReport(){
+  document.getElementById('absReportOverlay').classList.remove('show');
+  _absReportCls = null;
+}
+
+function copyAbsReport(){
+  if(!_absReportText) return;
+  if(navigator.share){
+    navigator.share({ text: _absReportText }).catch(()=>fallbackCopy());
+  } else {
+    fallbackCopy();
+  }
+}
+function fallbackCopy(){
+  navigator.clipboard?.writeText(_absReportText)
+    .then(()=>showToast('✅ تم نسخ التقرير'))
+    .catch(()=>{
+      // Last resort for older iOS
+      const ta = document.createElement('textarea');
+      ta.value = _absReportText;
+      ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try{ document.execCommand('copy'); showToast('✅ تم نسخ التقرير'); }
+      catch(e){ showToast('❌ لم يتم النسخ، حاول مرة أخرى'); }
+      ta.remove();
+    });
+}
+
+// ════════════════════════════════════
+// GOOGLE SHEETS SYNC ENGINE
+// ════════════════════════════════════
+const GS_KEY = 'gbpro_gsurl';
+const SECRET  = 'salah2026gradebook';
+let _syncQueue = {};   // {cls_n: true} — pending syncs
+let _syncTimer  = null;
+let _syncing    = false;
+
+function getGsUrl(){ return localStorage.getItem(GS_KEY)||''; }
+function saveGsUrl(){
+  const url = document.getElementById('gsUrl')?.value?.trim()||'';
+  localStorage.setItem(GS_KEY, url);
+  setGsStatus('', '');
+}
+function loadGsUrlUI(){
+  const el = document.getElementById('gsUrl');
+  if(el) el.value = getGsUrl();
+}
+
+function setGsStatus(msg, type){
+  const el = document.getElementById('gsStatus');
+  if(!el) return;
+  const colors = { ok:'#42ba96', err:'#fb7185', warn:'#fbbf24', info:'var(--muted2)' };
+  el.textContent = msg;
+  el.style.color = colors[type]||colors.info;
+}
+
+// ── CORE REQUEST ──
+async function gsRequest(params){
+  const url = getGsUrl();
+  if(!url) return null;
+  try{
+    const res = await fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ key: SECRET, ...params })
+    });
+    return await res.json();
+  }catch(e){ return null; }
+}
+
+// ── TEST CONNECTION ──
+async function testConnection(){
+  const url = getGsUrl();
+  if(!url){ setGsStatus('⚠️ No URL entered yet.','warn'); return; }
+  setGsStatus('🔄 Testing connection…','info');
+  const btn = document.getElementById('testBtn');
+  btn.textContent = '…'; btn.disabled = true;
+  const res = await gsRequest({ action:'ping' });
+  btn.textContent = '🔗 Test'; btn.disabled = false;
+  if(res && res.ok){
+    setGsStatus('✅ Connected! Google Sheet is ready.','ok');
+    showToast('✅ Google Sheets connected!');
+  } else if(res && res.error){
+    setGsStatus('❌ ' + res.error, 'err');
+  } else {
+    setGsStatus('❌ Cannot reach the script. Check the URL and make sure you redeployed.','err');
+  }
+}
+
+// ── SYNC ONE STUDENT RECORD ──
+async function syncRecord(cls, n){
+  const st  = loadCls(cls);
+  const rec = getStudentRecord(st, n, DATA[cls]?.[n-1]||'');
+  await gsRequest({
+    action: 'save', cls, n,
+    name: rec.name||'',
+    hw: rec.scores?.hw??'',   copy: rec.scores?.copy??'',
+    t1: rec.scores?.t1??'',   t2:   rec.scores?.t2??'',
+    glob: rec.scores?.glob??'',
+    participationPoints: rec.participationPoints||0,
+    disciplineIncidents: rec.disciplineIncidents||[],
+    absenceDates:        rec.absenceDates||[]
+  });
+}
+
+// ── QUEUE DEBOUNCED SYNC (3 sec after last change) ──
+function queueSync(cls, n){
+  _syncQueue[cls+'_'+n] = {cls, n};
+  if(_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(flushSyncQueue, 3000);
+}
+
+async function flushSyncQueue(){
+  if(!getGsUrl() || _syncing) return;
+  _syncing = true;
+  showSyncDot('pending');
+  const items = Object.values(_syncQueue);
+  _syncQueue  = {};
+  for(const {cls,n} of items) await syncRecord(cls, n);
+  _syncing = false;
+  showSyncDot('ok');
+}
+
+function showSyncDot(state){
+  const el = document.getElementById('syncDot');
+  if(!el) return;
+  if(state==='ok'){
+    el.textContent='☁️'; el.title='Synced to Google Sheets';
+    el.style.color='#42ba96'; el.style.opacity='1';
+    setTimeout(()=>el.style.opacity='.35', 3000);
+  } else if(state==='pending'){
+    el.textContent='🔄'; el.title='Syncing…';
+    el.style.color='#fbbf24'; el.style.opacity='1';
+  }
+}
+
+// ── PUSH ALL — force upload everything ──
+async function pushAllToSheets(){
+  const url = getGsUrl();
+  if(!url){ setGsStatus('⚠️ Enter your Google Script URL first.','warn'); return; }
+  const btn = document.getElementById('pushBtn');
+  btn.textContent = '⏳ Pushing…'; btn.disabled = true;
+  setGsStatus('🔄 Uploading all records to Google Sheets…','info');
+  showSyncDot('pending');
+  let count = 0;
+  for(const cls of classNames){
+    for(let idx=0; idx<(DATA[cls]||[]).length; idx++){
+      await syncRecord(cls, idx+1);
+      count++;
+    }
+  }
+  btn.textContent = '☁️ Push All'; btn.disabled = false;
+  setGsStatus('✅ ' + count + ' records pushed to Google Sheets.','ok');
+  showToast('☁️ All data synced to Google Sheets');
+  showSyncDot('ok');
+}
+
+// ── PULL — load all data from sheet on startup ──
+async function pullFromSheets(){
+  if(!getGsUrl()) return;
+  showSyncDot('pending');
+  const res = await gsRequest({ action:'loadAll' });
+  if(!res || !res.ok || !Array.isArray(res.data) || !res.data.length){
+    showSyncDot('ok'); return;
+  }
+  res.data.forEach(row=>{
+    const cls = row.cls;
+    const n   = parseInt(row.n);
+    if(!cls || !n || !DATA[cls]) return;
+    const st  = loadCls(cls);
+    const rec = getStudentRecord(st, n, DATA[cls][n-1]||'');
+    if(row.name) rec.name = row.name;
+    rec.scores = {
+      hw: row.hw??'', copy: row.copy??'',
+      t1: row.t1??'', t2: row.t2??'',
+      glob: row.glob??''
+    };
+    rec.participationPoints = parseInt(row.participationPoints)||0;
+    rec.disciplineIncidents = Array.isArray(row.disciplineIncidents)?row.disciplineIncidents:[];
+    rec.absenceDates        = Array.isArray(row.absenceDates)?row.absenceDates:[];
+    try{ localStorage.setItem(SK(cls), JSON.stringify(st)); }catch(e){}
+  });
+  showToast('✅ Data loaded from Google Sheets');
+  showSyncDot('ok');
+  if(currentClass) renderClassPage(currentClass);
+  renderOverview();
+  updateRiskCount();
+}
+
+// ════════════════════════════════════
+// SAVE INDICATOR
+// ════════════════════════════════════
+let _lastSaved = null;
+let _saveTimer = null;
+let _unsavedChanges = false;
+
+function showSaveIndicator(){
+  _lastSaved = new Date();
+  _unsavedChanges = false;
+  const icon = document.getElementById('saveIcon');
+  const text = document.getElementById('saveText');
+  const bar  = document.getElementById('saveIndicator');
+  const btn  = document.getElementById('manualSaveBtn');
+  if(!icon||!text||!bar) return;
+  // Flash green
+  icon.textContent = '✅';
+  text.textContent = 'تم الحفظ';
+  bar.style.borderColor = 'rgba(34,197,94,.4)';
+  bar.style.background   = 'rgba(34,197,94,.1)';
+  bar.style.color        = 'var(--green)';
+  if(btn){ btn.style.borderColor='rgba(34,197,94,.4)'; btn.style.color='var(--green)'; }
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>{
+    const t = _lastSaved;
+    const h = t.getHours().toString().padStart(2,'0');
+    const m = t.getMinutes().toString().padStart(2,'0');
+    icon.textContent = '✅';
+    text.textContent = 'آخر حفظ ' + h + ':' + m;
+    bar.style.borderColor = 'rgba(34,197,94,.2)';
+    bar.style.background   = 'rgba(34,197,94,.06)';
+    bar.style.color        = 'var(--green)';
+    if(btn){ btn.style.borderColor=''; btn.style.color=''; }
+  }, 1800);
+}
+
+function markUnsaved(){
+  _unsavedChanges = true;
+  const icon = document.getElementById('saveIcon');
+  const text = document.getElementById('saveText');
+  const bar  = document.getElementById('saveIndicator');
+  const btn  = document.getElementById('manualSaveBtn');
+  if(!icon||!text||!bar) return;
+  icon.textContent = '✏️';
+  text.textContent = 'تغييرات غير محفوظة';
+  bar.style.borderColor = 'rgba(245,158,11,.35)';
+  bar.style.background   = 'rgba(245,158,11,.08)';
+  bar.style.color        = 'var(--amber)';
+  if(btn){ btn.style.borderColor='rgba(245,158,11,.4)'; btn.style.color='var(--amber)'; }
+}
+
+function showSaveError(){
+  const icon = document.getElementById('saveIcon');
+  const text = document.getElementById('saveText');
+  const bar  = document.getElementById('saveIndicator');
+  if(!icon||!text||!bar) return;
+  icon.textContent = '❌';
+  text.textContent = 'فشل الحفظ!';
+  bar.style.borderColor = 'rgba(244,63,94,.4)';
+  bar.style.background   = 'rgba(244,63,94,.1)';
+  bar.style.color        = 'var(--red)';
+  showToast('❌ فشل الحفظ — قد تكون الذاكرة ممتلئة');
+}
+
+function manualSave(){
+  // Force-save the current class if open
+  if(currentClass && _rows[currentClass]){
+    const st = loadCls(currentClass);
+    const names = DATA[currentClass]||[];
+    _rows[currentClass].forEach(({rowObj, n})=>{
+      const rec = getStudentRecord(st, n, names[n-1]);
+      rec.name = rowObj.nameInp.value;
+      rec.scores = {
+        hw: rowObj.hw.value, copy: rowObj.copy.value,
+        t1: rowObj.t1.value, t2: rowObj.t2.value, glob: rowObj.glob.value
+      };
+      rec.participationPoints = rowObj.partPoints;
+      rec.disciplineIncidents = rowObj.discIncidents;
+      rec.absenceDates = rowObj.absDates;
+    });
+    saveCls(currentClass, st);
+  }
+  saveSettings();
+  showToast('💾 تم حفظ جميع البيانات');
+}
+
+// Warn before leaving if unsaved
+window.addEventListener('beforeunload', e=>{
+  if(_unsavedChanges){
+    e.preventDefault();
+    e.returnValue = 'لديك تغييرات غير محفوظة. هل تريد المغادرة؟';
+  }
+});
+
+// ════════════════════════════════════
+// iPHONE SWIPE-DOWN TO CLOSE SHEETS
+// ════════════════════════════════════
+function addSwipeToClose(sheetEl, closeFn){
+  let startY = 0, isDragging = false;
+  sheetEl.addEventListener('touchstart', e=>{
+    startY = e.touches[0].clientY;
+    isDragging = true;
+  }, {passive: true});
+  sheetEl.addEventListener('touchmove', e=>{
+    if(!isDragging) return;
+    const dy = e.touches[0].clientY - startY;
+    if(dy > 0) sheetEl.style.transform = `translateY(${dy}px)`;
+  }, {passive: true});
+  sheetEl.addEventListener('touchend', e=>{
+    if(!isDragging) return;
+    isDragging = false;
+    const dy = e.changedTouches[0].clientY - startY;
+    if(dy > 80){ sheetEl.style.transform=''; closeFn(); }
+    else{ sheetEl.style.transition='transform .2s'; sheetEl.style.transform=''; setTimeout(()=>sheetEl.style.transition='',200); }
+  }, {passive: true});
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  loadSettingsUI();
+  loadGsUrlUI();
+  updateWeights();
+  buildSidebarNav();
+  buildClassPageContainers();
+  renderOverview();
+  updateRiskCount();
+  // Pull latest data from Google Sheets on startup (if URL is set)
+  if(getGsUrl()) pullFromSheets();
+  // iPhone swipe-down to close all sheets
+  const sheets = document.querySelectorAll('.sheet');
+  sheets.forEach(s=>{
+    const overlay = s.closest('.overlay');
+    if(!overlay) return;
+    const id = overlay.id;
+    const closers = { discOverlay: closeDisc, absOverlay: closeAbs };
+    if(closers[id]) addSwipeToClose(s, closers[id]);
+  });
+});
+</script>
+</body>
+</html>
