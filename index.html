@@ -5,6 +5,15 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="دفتر الأستاذ" name="application-name"/>
+<meta content="دفتر الأستاذ" name="apple-mobile-web-app-title"/>
+<meta content="#080e1e" name="theme-color"/>
+<meta content="telephone=no" name="format-detection"/>
+<link href="gradebook-icon-192.png" rel="icon" sizes="192x192" type="image/png"/>
+<link href="gradebook-icon-512.png" rel="icon" sizes="512x512" type="image/png"/>
+<link href="gradebook-icon-180.png" rel="apple-touch-icon" sizes="180x180" type="image/png"/>
+<link href="gradebookpro.webmanifest" rel="manifest"/>
+
 <title>دفتر الأستاذ — Gradebook Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&amp;family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;600&amp;display=swap" rel="stylesheet"/>
 
@@ -4542,7 +4551,11 @@ function printArabicReport(){
 <body>
 <!-- SKELETON LOADER -->
 <div class="skeleton-overlay" id="skeletonOverlay">
-<div class="skeleton-logo">📚</div>
+<div class="skeleton-brand-shell">
+  <img alt="" class="skeleton-logo-img" src="gradebook-icon-192.png"/>
+  <div class="skeleton-title">دفتر الأستاذ</div>
+  <div class="skeleton-subtitle">Gradebook Pro</div>
+</div>
 <div class="skeleton-bars">
 <div class="skeleton-bar" style="width:80%"></div>
 <div class="skeleton-bar" style="width:60%"></div>
@@ -8869,16 +8882,31 @@ body.sepia tbody tr:hover td { background: rgba(196,124,43,.1) !important; }
 /* ── LOADING SKELETON ── */
 .skeleton-overlay {
   position: fixed; inset: 0; z-index: 500;
-  background: var(--bg); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 20px;
+  background:
+    radial-gradient(1200px 700px at 15% 18%, rgba(31,71,143,.35), transparent 55%),
+    radial-gradient(900px 560px at 82% 12%, rgba(235,193,95,.12), transparent 46%),
+    linear-gradient(180deg, #091120 0%, #080e1e 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 22px;
   transition: opacity .4s;
 }
 .skeleton-overlay.hidden { opacity: 0; pointer-events: none; }
-.skeleton-logo { font-size: 48px; animation: skPulse 1.2s infinite; }
-.skeleton-bar { height: 8px; border-radius: 99px; background: var(--border2); animation: skShimmer 1.4s infinite; }
-@keyframes skPulse { 0%,100%{opacity:.4} 50%{opacity:1} }
-@keyframes skShimmer { 0%{opacity:.3} 50%{opacity:.8} 100%{opacity:.3} }
-.skeleton-bars { display: flex; flex-direction: column; gap: 10px; width: 200px; }
+.skeleton-brand-shell { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.skeleton-logo-img {
+  width: 92px; height: 92px; border-radius: 22px; object-fit: cover;
+  box-shadow: 0 18px 44px rgba(0,0,0,.35), 0 0 0 1px rgba(235,193,95,.12);
+  animation: skPulse 1.35s ease-in-out infinite;
+}
+.skeleton-title {
+  color: #f8fbff; font-weight: 800; font-size: 28px; letter-spacing: -.02em;
+}
+.skeleton-subtitle {
+  color: rgba(233,241,252,.72); font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+}
+.skeleton-bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.12); animation: skShimmer 1.4s infinite; }
+@keyframes skPulse { 0%,100%{opacity:.78; transform:translateY(0)} 50%{opacity:1; transform:translateY(-2px)} }
+@keyframes skShimmer { 0%{opacity:.25} 50%{opacity:.8} 100%{opacity:.25} }
+.skeleton-bars { display: flex; flex-direction: column; gap: 10px; width: 220px; }
 
 /* ── ONBOARDING ── */
 .onboard-overlay {
