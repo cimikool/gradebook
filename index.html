@@ -9169,10 +9169,13 @@ function renderAbsReport(){
           <div style="font-size:15px;font-weight:700">القسم: ${cls}</div>
           <div style="font-size:12px;margin-top:3px;opacity:.8">${selectedDate}${isToday ? ' · اليوم' : ' · يوم سابق'}${absent.length ? ' · ' + hhmm : ''}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;position:relative">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <div class="abs-count-badge">${absent.length}<div style="font-size:11px;font-weight:600;opacity:.85">غائب</div></div>
-          <button class="tool-btn" type="button" id="absReportPickDateBtn" style="min-width:48px;justify-content:center;padding-inline:12px" title="اختر تاريخا سابقا أو اليوم">📅</button>
-          <input type="date" id="absReportDateInput" value="${selectedDate}" max="${today}" style="position:absolute;inset:auto 0 0 auto;width:1px;height:1px;opacity:0;pointer-events:none">
+          <label for="absReportDateInput" class="tool-btn" style="gap:8px;cursor:pointer;padding-inline:12px;min-height:44px" title="اختر اليوم أو أي تاريخ سابق">
+            <span aria-hidden="true">📅</span>
+            <span>التاريخ</span>
+          </label>
+          <input type="date" id="absReportDateInput" value="${selectedDate}" max="${today}" aria-label="اختر تاريخ الغياب" style="appearance:auto;-webkit-appearance:auto;min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid rgba(148,163,184,.28);background:rgba(255,255,255,.92);color:#0f172a;font:inherit;font-size:16px;line-height:1.2;direction:ltr;text-align:center;box-shadow:0 6px 18px rgba(15,23,42,.08)">
         </div>
       </div>
       ${absent.length ? `
@@ -9186,22 +9189,15 @@ function renderAbsReport(){
     </div>`;
 
   const dateInput = document.getElementById('absReportDateInput');
-  const dateBtn = document.getElementById('absReportPickDateBtn');
-  if(dateBtn && dateInput){
-    dateBtn.onclick = function(){
-      try{
-        if(typeof dateInput.showPicker === 'function') dateInput.showPicker();
-        else dateInput.click();
-      }catch(err){
-        dateInput.click();
-      }
-    };
-    dateInput.onchange = function(){
-      const picked = String(this.value||'').trim();
+  if(dateInput){
+    const applyPickedDate = function(){
+      const picked = String(dateInput.value||'').trim();
       if(!picked) return;
       _absReportDate = picked > today ? today : picked;
       renderAbsReport();
     };
+    dateInput.onchange = applyPickedDate;
+    dateInput.oninput = applyPickedDate;
   }
 
   document.getElementById('absReportCopyBtn').style.display = absent.length ? '' : 'none';
@@ -10971,21 +10967,38 @@ window.addEventListener('beforeunload', e=>{
 // iPHONE SWIPE-DOWN TO CLOSE SHEETS
 // ════════════════════════════════════
 function addSwipeToClose(sheetEl, closeFn){
-  let startY = 0, isDragging = false;
+  let startY = 0, isDragging = false, canDrag = false;
+  const isRollCall = !!sheetEl && sheetEl.id === 'rollCallSheet';
+  const handle = isRollCall ? sheetEl.querySelector('.sheet-handle') : null;
   sheetEl.addEventListener('touchstart', e=>{
     startY = e.touches[0].clientY;
     isDragging = true;
+    canDrag = true;
+    if(isRollCall){
+      const t = e.target;
+      const startedOnHandle = !!(handle && (t === handle || handle.contains(t)));
+      const startedNearTop = (startY - sheetEl.getBoundingClientRect().top) <= 44;
+      const nearTopOfScroll = (sheetEl.scrollTop || 0) <= 2;
+      canDrag = nearTopOfScroll && (startedOnHandle || startedNearTop);
+    }
   }, {passive: true});
   sheetEl.addEventListener('touchmove', e=>{
-    if(!isDragging) return;
+    if(!isDragging || !canDrag) return;
     const dy = e.touches[0].clientY - startY;
+    if(isRollCall && (sheetEl.scrollTop || 0) > 2){
+      canDrag = false;
+      sheetEl.style.transform = '';
+      return;
+    }
     if(dy > 0) sheetEl.style.transform = `translateY(${dy}px)`;
   }, {passive: true});
   sheetEl.addEventListener('touchend', e=>{
     if(!isDragging) return;
+    const wasAllowed = canDrag;
     isDragging = false;
+    canDrag = false;
     const dy = e.changedTouches[0].clientY - startY;
-    if(dy > 80){ sheetEl.style.transform=''; closeFn(); }
+    if(wasAllowed && dy > 80){ sheetEl.style.transform=''; closeFn(); }
     else{ sheetEl.style.transition='transform .2s'; sheetEl.style.transform=''; setTimeout(()=>sheetEl.style.transition='',200); }
   }, {passive: true});
 }
