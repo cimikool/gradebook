@@ -10969,12 +10969,14 @@ window.addEventListener('beforeunload', e=>{
 function addSwipeToClose(sheetEl, closeFn){
   let startY = 0, isDragging = false, canDrag = false;
   const isRollCall = !!sheetEl && sheetEl.id === 'rollCallSheet';
-  const handle = isRollCall ? sheetEl.querySelector('.sheet-handle') : null;
+  const isRoster = !!sheetEl && sheetEl.closest && !!sheetEl.closest('#rosterOverlay');
+  const guardTopStart = isRollCall || isRoster;
+  const handle = guardTopStart ? sheetEl.querySelector('.sheet-handle') : null;
   sheetEl.addEventListener('touchstart', e=>{
     startY = e.touches[0].clientY;
     isDragging = true;
     canDrag = true;
-    if(isRollCall){
+    if(guardTopStart){
       const t = e.target;
       const startedOnHandle = !!(handle && (t === handle || handle.contains(t)));
       const startedNearTop = (startY - sheetEl.getBoundingClientRect().top) <= 44;
@@ -10985,7 +10987,7 @@ function addSwipeToClose(sheetEl, closeFn){
   sheetEl.addEventListener('touchmove', e=>{
     if(!isDragging || !canDrag) return;
     const dy = e.touches[0].clientY - startY;
-    if(isRollCall && (sheetEl.scrollTop || 0) > 2){
+    if(guardTopStart && (sheetEl.scrollTop || 0) > 2){
       canDrag = false;
       sheetEl.style.transform = '';
       return;
@@ -11693,6 +11695,17 @@ function renderRosterManager(){
     const actions = document.createElement('div');
     actions.className = 'roster-actions';
 
+    const bindRosterAction = (btn, handler) => {
+      btn.type = 'button';
+      const wrapped = (ev) => {
+        if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+        return handler(ev);
+      };
+      btn.onclick = wrapped;
+      btn.addEventListener('touchend', wrapped, {passive:false});
+      btn.addEventListener('pointerup', wrapped);
+    };
+
     const commitNameChange = () => {
       if(isRemoved) return false;
       const previousName = (nameInp.dataset.savedName || '').trim();
@@ -11720,7 +11733,7 @@ function renderRosterManager(){
       const restoreBtn = document.createElement('button');
       restoreBtn.className = 'roster-restore-btn';
       restoreBtn.textContent = '↩ استعادة';
-      restoreBtn.onclick = () => {
+      bindRosterAction(restoreBtn, () => {
         const r = getRoster(cls);
         r[idx] = (DEFAULT_DATA[cls]&&DEFAULT_DATA[cls][idx]) || 'طالب ' + n;
         saveRoster(cls, r);
@@ -11728,13 +11741,13 @@ function renderRosterManager(){
         renderClassPage(cls);
         updateBadgeCounts();
         showToast('↩ تمت الاستعادة');
-      };
+      });
       actions.appendChild(restoreBtn);
     } else {
       const saveBtn = document.createElement('button');
       saveBtn.className = 'roster-save-btn';
       saveBtn.textContent = 'حفظ';
-      saveBtn.onclick = () => { commitNameChange(); };
+      bindRosterAction(saveBtn, () => { commitNameChange(); });
 
       nameInp.addEventListener('blur', () => { commitNameChange(); });
       nameInp.addEventListener('keydown', e => {
@@ -11749,15 +11762,40 @@ function renderRosterManager(){
       actionBtn.className = 'roster-del-btn';
       actionBtn.textContent = 'حذف';
       actionBtn.title = 'Remove student (data preserved)';
-      actionBtn.onclick = () => {
-        const currentName = (nameInp.value || name || ('طالب ' + n)).trim();
-        if(!confirm(`حذف ${currentName} من القائمة؟ ستبقى بياناته محفوظة.`)) return;
-        removeStudent(cls, n);
-        renderRosterManager();
-        renderClassPage(cls);
-        updateBadgeCounts();
-        showToast('🗑 تم الحذف — يمكن الاستعادة');
-      };
+      bindRosterAction(actionBtn, () => {
+        if(row.dataset.deleteConfirm === '1') return;
+        row.dataset.deleteConfirm = '1';
+        actions.innerHTML = '';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'roster-del-btn';
+        confirmBtn.type = 'button';
+        confirmBtn.textContent = 'تأكيد الحذف';
+        confirmBtn.style.borderColor = 'rgba(244,63,94,.35)';
+        confirmBtn.style.color = 'var(--red)';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'roster-save-btn';
+        cancelBtn.type = 'button';
+        cancelBtn.textContent = 'إلغاء';
+
+        bindRosterAction(confirmBtn, () => {
+          const currentName = (nameInp.value || name || ('طالب ' + n)).trim();
+          removeStudent(cls, n);
+          renderRosterManager();
+          renderClassPage(cls);
+          updateBadgeCounts();
+          showToast('🗑 تم حذف ' + currentName + ' — يمكن الاستعادة');
+        });
+
+        bindRosterAction(cancelBtn, () => {
+          row.dataset.deleteConfirm = '0';
+          actions.innerHTML = '';
+          actions.append(saveBtn, actionBtn);
+        });
+
+        actions.append(confirmBtn, cancelBtn);
+      });
 
       actions.append(saveBtn, actionBtn);
     }
@@ -14206,22 +14244,27 @@ function openNameCtxMenu(e, cls, n) {
   menu.className = 'name-ctx-menu';
   menu.id = 'nameCtxMenu';
 
-  function runCtxAction(ev, fn) {
-    if(ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
-    }
-    closeNameCtxMenu();
-    fn();
-  }
-
   function item(icon, label, fn, danger) {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'name-ctx-item' + (danger ? ' danger' : '');
     btn.innerHTML = '<span>' + icon + '</span><span>' + label + '</span>';
-    btn.addEventListener('click', function(ev){ runCtxAction(ev, fn); });
-    btn.addEventListener('touchend', function(ev){ runCtxAction(ev, fn); }, {passive:false});
+
+    var fired = false;
+    function run(ev){
+      if(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+      if(fired) return;
+      fired = true;
+      closeNameCtxMenu();
+      setTimeout(function(){ fn(); }, 0);
+    }
+
+    btn.addEventListener('click', run);
+    btn.addEventListener('touchend', run, {passive:false});
+    btn.addEventListener('pointerup', run);
     menu.appendChild(btn);
   }
   function divider() {
@@ -14230,18 +14273,17 @@ function openNameCtxMenu(e, cls, n) {
 
   item('✏️', 'تعديل الاسم', function(){ startInlineEdit(cls, n); });
   divider();
-  item('📊', 'الرسم البياني', function(){ openStudentFullCard(cls, n, 'chart'); });
-  item('🪪', 'بطاقة الأداء', function(){ openStudentFullCard(cls, n, 'perf'); });
-  item('🔪', 'الملف الشخصي', function(){ openStudentFullCard(cls, n, 'profile'); });
+  item('📈', 'الرسم البياني', function(){ openStudentFullCard(cls, n, 'chart'); });
+  item('📊', 'بطاقة الأداء', function(){ openStudentFullCard(cls, n, 'perf'); });
+  item('🪪', 'الملف الشخصي', function(){ openStudentFullCard(cls, n, 'profile'); });
   divider();
-  item('🗑', 'حذف', function(){ startInlineDelete(cls, n); }, true);
+  item('🗑️', 'حذف', function(){ startInlineDelete(cls, n); }, true);
 
   document.body.appendChild(menu);
   _ctxMenu = menu;
 
-  var pt = (e && e.touches && e.touches[0]) ? e.touches[0] : ((e && e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : e);
-  var x = (pt && typeof pt.clientX === 'number') ? pt.clientX : Math.round(window.innerWidth / 2);
-  var y = (pt && typeof pt.clientY === 'number') ? pt.clientY : Math.round(window.innerHeight / 2);
+  var x = (e && typeof e.clientX === 'number') ? e.clientX : Math.round(window.innerWidth / 2);
+  var y = (e && typeof e.clientY === 'number') ? e.clientY : Math.round(window.innerHeight / 2);
   var mw = 195, mh = 220;
   if(x + mw > window.innerWidth)  x = window.innerWidth  - mw - 8;
   if(y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
@@ -14249,14 +14291,9 @@ function openNameCtxMenu(e, cls, n) {
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
 
-  var outsideClose = function(ev){
-    if(!_ctxMenu) return;
-    if(_ctxMenu.contains(ev.target)) return;
-    closeNameCtxMenu();
-  };
   setTimeout(function(){
-    document.addEventListener('click', outsideClose, {once:true});
-    document.addEventListener('touchstart', outsideClose, {once:true, passive:true});
+    document.addEventListener('click', closeNameCtxMenu, {once:true});
+    document.addEventListener('touchstart', closeNameCtxMenu, {once:true, passive:true});
   }, 20);
 }
 
@@ -14264,8 +14301,29 @@ function closeNameCtxMenu() {
   if(_ctxMenu) { _ctxMenu.remove(); _ctxMenu = null; }
 }
 
+function closeOtherStudentNameEditors(exceptCls, exceptN) {
+  document.querySelectorAll('.name-edit-inp').forEach(function(inp){
+    var cell = inp.closest('td.name-cell');
+    if(!cell) return;
+    var label = cell.querySelector('.name-label');
+    if(label && label.getAttribute('data-cls') === String(exceptCls) && label.getAttribute('data-n') === String(exceptN)) return;
+    if(label) label.style.display = '';
+    var wrap = inp.closest('div');
+    if(wrap) wrap.remove();
+  });
+  document.querySelectorAll('.name-del-confirm-row').forEach(function(wrap){
+    var cell = wrap.closest('td.name-cell');
+    if(!cell) return;
+    var label = cell.querySelector('.name-label');
+    if(label && label.getAttribute('data-cls') === String(exceptCls) && label.getAttribute('data-n') === String(exceptN)) return;
+    if(label) label.style.display = '';
+    wrap.remove();
+  });
+}
+
 // ── INLINE EDIT ──────────────────────────────────────────────
 function startInlineEdit(cls, n) {
+  closeOtherStudentNameEditors(cls, n);
   var row = _rows[cls] ? _rows[cls].find(function(r){ return r.n===n; }) : null;
   if(!row) return;
   var tdName = row.tr.querySelector('td.name-cell');
@@ -14323,6 +14381,7 @@ function startInlineEdit(cls, n) {
 
 // ── INLINE DELETE CONFIRM ─────────────────────────────────────
 function startInlineDelete(cls, n) {
+  closeOtherStudentNameEditors(cls, n);
   var row = _rows[cls] ? _rows[cls].find(function(r){ return r.n===n; }) : null;
   if(!row) return;
   var tdName = row.tr.querySelector('td.name-cell');
