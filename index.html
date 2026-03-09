@@ -16695,7 +16695,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var out = [];
     var seen = Object.create(null);
     slots.forEach(function(slot){
-      var key = todayId + '_' + slot.period + '_' + slot.slot;
+      var periodKey = (slot.period === 'الصباح' ? 'am' : (slot.period === 'المساء' ? 'pm' : slot.period));
+      var key = todayId + '_' + periodKey + '_' + slot.slot;
       var raw = data.assignments[key];
       if(!raw) return;
       if(typeof raw === 'string' && raw.indexOf('__broken__') === 0) return;
