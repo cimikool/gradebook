@@ -4961,6 +4961,7 @@ function printArabicReport(){
 </div>
 <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
 <button class="stg-sync-btn test" id="testBtn" data-action="test-gs-connection">🔗 اختبار الاتصال</button>
+<button class="stg-sync-btn pull" id="pullBtn" data-action="pull-all-from-sheets">📥 استرجاع البيانات من الشيت</button>
 <button class="stg-sync-btn push" id="pushBtn" data-action="push-all-to-sheets">☁️ رفع جميع البيانات</button>
 </div>
 <div id="gsStatus" style="margin-top:10px;font-size:12px;font-weight:700;min-height:18px;direction:rtl;color:var(--muted)"></div>
@@ -9384,36 +9385,104 @@ async function pushAllToSheets(){
   showSyncDot('ok');
 }
 
-// ── PULL — load all data from sheet on startup ──
-async function pullFromSheets(){
+// ── PULL — restore gradebook core data from Google Sheets ──
+async function pullFromSheets(silent){
+  silent = !!silent;
   if(!getGsUrl()) return;
+
+  function _normCls(s){
+    return String(s||'').trim().toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/[‐‑‒–—―]/g,'-')
+      .replace(/_/g,'-');
+  }
+  function _canonCls(s){
+    return String(s||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  }
+
+  var _reg = getClassRegistry();
+  if(!_reg) { try{ _reg = ensureClassRegistry(); }catch(e){} }
+  const localClsList = (_reg && Array.isArray(_reg.classes))
+    ? _reg.classes.map(c=>c.name)
+    : ((typeof classNames !== 'undefined' && Array.isArray(classNames)) ? classNames.slice() : []);
+
+  const localMap = {};
+  const localCanon = {};
+  localClsList.forEach(c=>{
+    localMap[_normCls(c)] = c;
+    localCanon[c] = _canonCls(c);
+  });
+
   showSyncDot('pending');
+  const btn = document.getElementById('pullBtn');
+  if(btn && !silent){ btn.disabled = true; btn.textContent = '⏳ جاري الاسترجاع…'; }
+  if(!silent) setGsStatus('🔄 يتم استرجاع الدرجات والغياب من Google Sheets…','info');
+
   const res = await gsRequest({ action:'loadAll' });
   if(!res || !res.ok || !Array.isArray(res.data) || !res.data.length){
-    showSyncDot('ok'); return;
+    if(btn){ btn.disabled = false; btn.textContent = '📥 استرجاع البيانات من الشيت'; }
+    if(!silent) setGsStatus('⚠️ لا توجد بيانات مسترجعة من الشيت.','warn');
+    showSyncDot('ok');
+    return;
   }
+
+  let restored = 0;
+
   res.data.forEach(row=>{
-    const cls = row.cls;
-    const n   = parseInt(row.n);
-    if(!cls || !n || !getRoster(cls)) return;
+    const rawCls = String(row.cls||'').trim();
+    const n = parseInt(row.n, 10);
+    if(!rawCls || !n) return;
+
+    let cls = localMap[_normCls(rawCls)] || '';
+    if(!cls){
+      const wanted = _canonCls(rawCls);
+      cls = localClsList.find(c => localCanon[c] === wanted) || rawCls;
+    }
+
+    const roster = getRoster(cls) || [];
     const st  = loadCls(cls);
-    const rec = getStudentRecord(st, n, getRoster(cls)[n-1]||'');
+    const rec = getStudentRecord(st, n, roster[n-1]||'');
+
     if(row.name) rec.name = row.name;
     rec.scores = {
-      hw: row.hw||'', copy: row.copy||'',
-      t1: row.t1||'', t2: row.t2||'',
-      glob: row.glob||''
+      hw:   (row.hw   === 0 || row.hw)   ? row.hw   : '',
+      copy: (row.copy === 0 || row.copy) ? row.copy : '',
+      t1:   (row.t1   === 0 || row.t1)   ? row.t1   : '',
+      t2:   (row.t2   === 0 || row.t2)   ? row.t2   : '',
+      glob: (row.glob === 0 || row.glob) ? row.glob : ''
     };
-    rec.participationPoints = parseInt(row.participationPoints)||0;
-    rec.disciplineIncidents = Array.isArray(row.disciplineIncidents)?row.disciplineIncidents:[];
-    rec.absenceDates        = Array.isArray(row.absenceDates)?row.absenceDates:[];
+
+    rec.participationPoints = parseInt(row.participationPoints, 10) || 0;
+    rec.disciplineIncidents = Array.isArray(row.disciplineIncidents) ? row.disciplineIncidents : [];
+
+    const absDates = Array.isArray(row.absenceDates) ? row.absenceDates : [];
+    rec.absenceDates = absDates.slice();
+    rec.absenceRecords = absDates.map(d=>({ date:d, justified:false }));
+
+    if(Array.isArray(row.absenceRecords) && row.absenceRecords.length){
+      rec.absenceRecords = row.absenceRecords.map(x=>({
+        date: x && x.date ? x.date : '',
+        justified: !!(x && x.justified)
+      })).filter(x=>x.date);
+      rec.absenceDates = rec.absenceRecords.map(x=>x.date);
+    }
+
+    if(row.unjustAbs === 0 || row.unjustAbs) rec.unjustAbs = parseInt(row.unjustAbs, 10) || 0;
+    else rec.unjustAbs = (rec.absenceRecords||[]).filter(x=>!x.justified).length;
+
     if(Array.isArray(row.hwChecks)) rec.hwChecks = row.hwChecks;
     if(row.hwOnlineAgg===0||row.hwOnlineAgg) rec.hwOnlineAgg = row.hwOnlineAgg;
-    if(row.hwOnlineCount) rec.hwOnlineCount = parseInt(row.hwOnlineCount)||0;
+    rec.hwOnlineCount = (row.hwOnlineCount===0||row.hwOnlineCount) ? (parseInt(row.hwOnlineCount, 10)||0) : (rec.hwOnlineCount||0);
     if(row.hwOnlineUpdatedAt) rec.hwOnlineUpdatedAt = row.hwOnlineUpdatedAt;
-    try{ saveCls(cls, st); }catch(e){}
+
+    try{ saveCls(cls, st); restored++; }catch(e){}
   });
-  showToast('✅ Data loaded from Google Sheets');
+
+  if(btn){ btn.disabled = false; btn.textContent = '📥 استرجاع البيانات من الشيت'; }
+  if(!silent){
+    setGsStatus('✅ تم استرجاع ' + restored + ' سجل من Google Sheets.','ok');
+    showToast('✅ تم استرجاع الدرجات والغياب من Google Sheets');
+  }
   showSyncDot('ok');
   if(currentClass) renderClassPage(currentClass);
   renderOverview();
@@ -13906,6 +13975,7 @@ var GB_ACTIONS = {
   'auto-balance':          function()    { autoBalance(); },
   'test-gs-connection':    function()    { testConnection(); },
   'push-all-to-sheets':    function()    { pushAllToSheets(); },
+  'pull-all-from-sheets':  function()    { pullFromSheets(false); },
   'pull-homework':        function()    { pullHomeworkAgg(false); },
   // Homework Manager — clean UI actions
   'hm-tab-sub':           function(btn){ var cls=hwMgrGetClass(); if(!cls) return; var ui=hmUIGet(cls); ui.tab='sub'; hmUISave(cls, ui); hmCloseMenu(); hmRenderSubmissions(); },
@@ -14213,7 +14283,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Backup reminder
   setTimeout(checkBackupReminder, 2000);
   // Pull latest data from Google Sheets on startup (if URL is set)
-  if(getGsUrl()) pullFromSheets().then(function(){ pullHomeworkAgg(); });
+  if(getGsUrl()) pullFromSheets(true).then(function(){ pullHomeworkAgg(true); });
   // iPhone swipe-down to close all sheets
   const sheets = document.querySelectorAll('.sheet');
   sheets.forEach(s=>{
