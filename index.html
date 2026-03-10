@@ -407,7 +407,11 @@ td {
 td:last-child { border-right: none; }
 /* Name column: sticky on right (RTL layout) */
 td.name-cell {
-  min-width: 95px; max-width: 115px;
+  width: 115px;
+  min-width: 95px;
+  max-width: 115px;
+  overflow: hidden;
+  box-sizing: border-box;
   border-left: 2px solid rgba(61,127,255,.2) !important;
   position: sticky;
   right: 0;
@@ -423,7 +427,7 @@ thead th[data-col="name"] {
   border-left: 2px solid rgba(61,127,255,.25) !important;
 }
 td.num { text-align: center; font-family: var(--font-mono); font-size: 13px; color: var(--muted); width: 42px; }
-td.name-cell { min-width: 95px; max-width: 115px; }
+td.name-cell { width: 115px; min-width: 95px; max-width: 115px; overflow: hidden; box-sizing: border-box; }
 .name-inp {
   width: 100%; padding: 5px 7px;
   border-radius: 8px; border: 1px solid transparent;
@@ -973,13 +977,19 @@ td.name-cell { min-width: 95px; max-width: 115px; }
 
 /* ── NAME LABEL (clickable) ── */
 .name-label {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
   font-family: var(--font-ar); font-size: 15px; font-weight: 700;
   color: var(--text); direction: rtl; cursor: pointer;
   padding: 6px 8px; border-radius: 8px;
   transition: background .12s;
-  min-width: 140px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 220px;
+  touch-action: manipulation;
 }
 .name-label:hover { background: rgba(61,127,255,.1); color: var(--accent); }
 .name-label:active { background: rgba(61,127,255,.18); transform: scale(.97); }
@@ -3408,8 +3418,7 @@ function renderClassPage(cls){
     nameLabel.textContent = rec.name || defaultName || '';
     nameLabel.setAttribute('data-cls', cls);
     nameLabel.setAttribute('data-n', String(n));
-    nameLabel.addEventListener('click', function(e){
-      e.stopPropagation();
+    bindUnifiedTap(nameLabel, function(e){
       openNameCtxMenu(e, cls, n);
     });
     tdName.append(ni, nameLabel);
@@ -5497,10 +5506,10 @@ function printArabicReport(){
 </div>
 <div id="rcStudentList"></div>
 <div style="padding:16px 20px;display:flex;gap:8px;">
-<button class="tool-btn" data-action="mark-all-roll-call" data-state="present" style="color:var(--green);border-color:rgba(34,197,94,.4)">✓ الكل حاضر</button>
-<button class="tool-btn" data-action="mark-all-roll-call" data-state="absent-u" style="color:var(--red);border-color:rgba(244,63,94,.4)">✗ الكل غائب</button>
-<button class="tool-btn primary" data-action="save-roll-call" style="flex:1;justify-content:center;font-size:14px;padding:14px">✅ حفظ الحضور</button>
-<button class="tool-btn" data-action="close-roll-call" style="font-size:14px;padding:14px">إلغاء</button>
+<button type="button" class="tool-btn" data-action="mark-all-roll-call" data-state="present" style="color:var(--green);border-color:rgba(34,197,94,.4)">✓ الكل حاضر</button>
+<button type="button" class="tool-btn" data-action="mark-all-roll-call" data-state="absent-u" style="color:var(--red);border-color:rgba(244,63,94,.4)">✗ الكل غائب</button>
+<button type="button" class="tool-btn primary" data-action="save-roll-call" style="flex:1;justify-content:center;font-size:14px;padding:14px">✅ حفظ الحضور</button>
+<button type="button" class="tool-btn" data-action="close-roll-call" style="font-size:14px;padding:14px">إلغاء</button>
 </div>
 </div>
 </div>
@@ -6456,8 +6465,7 @@ function renderClassPage(cls){
     nameLabel.textContent = rec.name || defaultName || '';
     nameLabel.setAttribute('data-cls', cls);
     nameLabel.setAttribute('data-n', String(n));
-    nameLabel.addEventListener('click', function(e){
-      e.stopPropagation();
+    bindUnifiedTap(nameLabel, function(e){
       openNameCtxMenu(e, cls, n);
     });
     tdName.append(ni, nameLabel);
@@ -12842,6 +12850,7 @@ function openRollCall(cls){
   document.getElementById('rcMeta').textContent=_rcDate;
   renderRollCall();
   document.getElementById('rollCallOverlay').classList.add('show');
+  bindRollCallActionButtons();
   addSwipeToClose(document.getElementById('rollCallSheet'), closeRollCall);
 }
 
@@ -12874,6 +12883,7 @@ function renderRollCall(){
     <div class="rc-sum-chip"><div class="v" style="color:var(--red)">${absentUCount}</div><div class="l">غائب</div></div>
     <div class="rc-sum-chip"><div class="v" style="color:var(--amber)">${absentJCount}</div><div class="l">مبرر</div></div>
     <div class="rc-sum-chip"><div class="v" style="color:var(--muted)">${total}</div><div class="l">المجموع</div></div>`;
+  bindRollCallActionButtons();
 }
 
 function setRcState(n, state, btn){
@@ -12899,28 +12909,42 @@ function renderRollCallSummary(){
 }
 
 function saveRollCall(){
-  const cls=_rcCls; const date=_rcDate;
-  const st=loadCls(cls); const names=getRoster(cls);
-  names.forEach((_,idx)=>{
-    const n=idx+1; const state=_rcState[n]||'present';
-    const rec=getStudentRecord(st,n,names[idx]);
-    // Remove existing entry for this date first
-    absRemoveDate(rec,date);
-    if(state==='absent-u') absAddDate(rec,date,false);
-    else if(state==='absent-j') absAddDate(rec,date,true);
-    // sync row if class is open
-    var row=_rows[cls]?_rows[cls].find(function(r){return r.n===n;}):null;
-    if(row){ row.rowObj.absRec=rec; row.rowObj.absDates=absGetDates(rec); }
-  });
-  saveCls(cls,st);
-  // Sync all changed rows
-  names.forEach((_,idx)=>{ const n=idx+1; if(_rcState[n]!=='present') queueSync(cls,n); });
-  if(currentClass===cls) renderClassPage(cls);
-  updateTodayAbsBadge();
-  renderWeekStrip();
-  closeRollCall();
-  const absentCount=Object.values(_rcState).filter(s=>s!=='present').length;
-  showToast(`✅ تم الحفظ — ${absentCount} غائب`);
+  const cls = _rcCls;
+  const date = _rcDate;
+  if(!cls || !date){
+    showToast('⚠️ تعذر تحديد القسم أو تاريخ الحضور');
+    return;
+  }
+  try {
+    const st = loadCls(cls);
+    const names = getRoster(cls);
+    const touched = [];
+    names.forEach((_,idx)=>{
+      const n = idx + 1;
+      const state = _rcState[n] || 'present';
+      const rec = getStudentRecord(st, n, names[idx]);
+      absRemoveDate(rec, date);
+      if(state === 'absent-u') absAddDate(rec, date, false);
+      else if(state === 'absent-j') absAddDate(rec, date, true);
+      var row = _rows[cls] ? _rows[cls].find(function(r){ return r.n === n; }) : null;
+      if(row){
+        row.rowObj.absRec = rec;
+        row.rowObj.absDates = absGetDates(rec);
+      }
+      touched.push(n);
+    });
+    saveCls_immediate(cls, st);
+    touched.forEach(function(n){ queueSync(cls, n); });
+    if(currentClass === cls) renderClassPage(cls);
+    updateTodayAbsBadge();
+    renderWeekStrip();
+    closeRollCall();
+    const absentCount = Object.values(_rcState).filter(function(s){ return s !== 'present'; }).length;
+    showToast(`✅ تم حفظ الحضور — ${absentCount} غائب`);
+  } catch(err) {
+    console.error('saveRollCall failed', err);
+    showToast('❌ تعذر حفظ الحضور');
+  }
 }
 
 function closeRollCall(){ document.getElementById('rollCallOverlay').classList.remove('show'); _rcCls=null; }
@@ -14226,6 +14250,41 @@ function updateStatsMini(cls){
 }
 
 // ════════════════════════════════════════════════
+// TAP HELPERS (mobile-safe targeted bindings)
+// ════════════════════════════════════════════════
+function bindUnifiedTap(el, handler) {
+  if(!el || el.__gbTapBound) return;
+  el.__gbTapBound = true;
+  var lastRun = 0;
+  function wrapped(ev){
+    if(ev){
+      if(ev.type === 'pointerup' && ev.pointerType === 'mouse' && ev.button !== 0) return;
+      if(ev.cancelable) ev.preventDefault();
+      ev.stopPropagation();
+    }
+    var now = Date.now();
+    if(now - lastRun < 320) return;
+    lastRun = now;
+    handler(ev || null);
+  }
+  el.addEventListener('click', wrapped);
+  el.addEventListener('touchend', wrapped, {passive:false});
+  el.addEventListener('pointerup', wrapped);
+}
+
+function bindRollCallActionButtons(){
+  var overlay = document.getElementById('rollCallOverlay');
+  if(!overlay) return;
+  overlay.querySelectorAll('[data-action="save-roll-call"],[data-action="mark-all-roll-call"],[data-action="close-roll-call"],[data-action="set-rc-state"]').forEach(function(btn){
+    bindUnifiedTap(btn, function(ev){
+      var action = btn.getAttribute('data-action');
+      var handler = action ? GB_ACTIONS[action] : null;
+      if(handler) handler(ev || null, btn);
+    });
+  });
+}
+
+// ════════════════════════════════════════════════
 // NAME CONTEXT MENU
 // ════════════════════════════════════════════════
 
@@ -14271,8 +14330,6 @@ function openNameCtxMenu(e, cls, n) {
     var d = document.createElement('div'); d.className = 'name-ctx-divider'; menu.appendChild(d);
   }
 
-  item('✏️', 'تعديل الاسم', function(){ startInlineEdit(cls, n); });
-  divider();
   item('📈', 'الرسم البياني', function(){ openStudentFullCard(cls, n, 'chart'); });
   item('📊', 'بطاقة الأداء', function(){ openStudentFullCard(cls, n, 'perf'); });
   item('🪪', 'الملف الشخصي', function(){ openStudentFullCard(cls, n, 'profile'); });
@@ -14284,7 +14341,7 @@ function openNameCtxMenu(e, cls, n) {
 
   var x = (e && typeof e.clientX === 'number') ? e.clientX : Math.round(window.innerWidth / 2);
   var y = (e && typeof e.clientY === 'number') ? e.clientY : Math.round(window.innerHeight / 2);
-  var mw = 195, mh = 220;
+  var mw = 195, mh = 182;
   if(x + mw > window.innerWidth)  x = window.innerWidth  - mw - 8;
   if(y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
   if(x < 8) x = 8; if(y < 8) y = 8;
